@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Xero Power",
+  "version": "0.1.0",
+  "description": "Keyboard-first power tools for Xero — command palette, shortcuts, and more.",
+  "content_scripts": [
+    {
+      "matches": ["https://*.xero.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
