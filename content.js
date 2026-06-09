@@ -246,11 +246,23 @@
   ];
 
   // ─────────────────────────────────────────
-  // 2. 検索（ファジーマッチ）
+  // 2. 検索
   // ─────────────────────────────────────────
+  // 単語の先頭にマッチするかを判定
+  function wordStarts(text, q) {
+    return text.toLowerCase().split(/\s+/).some((w) => w.startsWith(q));
+  }
+
   function search(query) {
     const q = query.trim().toLowerCase();
     if (!q) return PAGES;
+
+    // 3文字以下はラベルの単語先頭にだけ一致させる（"rec"でInvoicesを出さない）
+    if (q.length <= 3) {
+      return PAGES.filter((p) => wordStarts(p.label, q));
+    }
+
+    // 4文字以上はラベル→キーワード→カテゴリ→説明文の順に広げる
     return PAGES.filter(
       (p) =>
         p.label.toLowerCase().includes(q) ||
