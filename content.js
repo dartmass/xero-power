@@ -527,52 +527,177 @@
   }
 
   // ─────────────────────────────────────────
-  // 5. グローバルキーボードイベント
+  // 5. Bank Rec キーボードショートカット
+  //    DOM構造（DevToolsで確認済み）:
+  //    a.t1=Match / a.t2=Create / a.t3=Transfer / a.t4=Discuss
+  //    各トランザクション行 = div.line（#statementLines の直下）
+  // ─────────────────────────────────────────
+  let brActive = false;   // Bank Rec モードが有効か
+  let brIdx    = 0;       // 現在フォーカスしている行インデックス
+
+  function brLines() {
+    return [...document.querySelectorAll("#statementLines .line")];
+  }
+
+  function brHighlight(lines, idx) {
+    lines.forEach((l, i) => {
+      l.style.outline         = i === idx ? "2px solid #0a7a4b" : "";
+      l.style.backgroundColor = i === idx ? "#f0fff8" : "";
+      l.style.borderRadius    = i === idx ? "6px" : "";
+    });
+    lines[idx]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  function brClickAction(actionClass) {
+    const lines = brLines();
+    const line  = lines[brIdx];
+    if (!line) return;
+    const btn = line.querySelector(actionClass);
+    if (!btn) return;
+    btn.click();
+    // クリック後に行が消える場合があるので 350ms 後に再スキャン
+    setTimeout(() => {
+      const next = brLines();
+      brIdx = Math.min(brIdx, Math.max(0, next.length - 1));
+      brHighlight(next, brIdx);
+    }, 350);
+  }
+
+  function brShowBar() {
+    if (document.getElementById("xp-br-bar")) return;
+    const anchor = document.getElementById("ItemsToReconcile");
+    if (!anchor) return;
+    const bar = document.createElement("div");
+    bar.id = "xp-br-bar";
+    bar.style.cssText = [
+      "position:sticky", "top:0", "z-index:200",
+      "background:#0a7a4b", "color:#fff",
+      "padding:6px 14px", "font:12px/1.6 -apple-system,sans-serif",
+      "display:flex", "gap:18px", "align-items:center",
+      "border-radius:0 0 8px 8px", "margin-bottom:6px",
+      "box-shadow:0 2px 8px rgba(0,0,0,.15)",
+    ].join(";");
+    bar.innerHTML = [
+      "<strong>Xero Power</strong>",
+      "<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>↑↓</b> 行移動</span>",
+      "<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>M</b> Match</span>",
+      "<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>C</b> Create</span>",
+      "<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>T</b> Transfer</span>",
+      "<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>D</b> Discuss</span>",
+    ].join("");
+    anchor.insertBefore(bar, anchor.firstChild);
+  }
+
+  function brTeardown() {
+    brActive = false;
+    document.getElementById("xp-br-bar")?.remove();
+    brLines().forEach((l) => {
+      l.style.outline = l.style.backgroundColor = l.style.borderRadius = "";
+    });
+  }
+
+  function brInit() {
+    if (brActive) return;
+    // #ItemsToReconcile が存在しない場合はまだDOMが準備できていない
+    if (!document.getElementById("ItemsToReconcile")) return;
+    brActive = true;
+    brIdx    = 0;
+    brShowBar();
+    const lines = brLines();
+    if (lines.length) brHighlight(lines, 0);
+    console.log("%c[Xero Power] Bank Rec shortcuts ✅  ↑↓ M C T D", "color:#0a7a4b;font-weight:bold");
+  }
+
+  // ─────────────────────────────────────────
+  // 6. グローバルキーボードイベント
   // ─────────────────────────────────────────
   window.addEventListener(
     "keydown",
     (e) => {
-      // ⌘K / Ctrl+K でパレット開閉
+      // ── ⌘K / Ctrl+K：パレット開閉（最優先）──
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        // Xeroの入力欄の中でも奪う（Xeroにはこのショートカット無し）
         e.preventDefault();
         e.stopPropagation();
         togglePalette();
         return;
       }
 
-      // パレットが開いている時だけ反応するキー
-      if (!document.getElementById("xp-backdrop")) return;
+      // ── パレットが開いている間はパレット操作のみ ──
+      if (document.getElementById("xp-backdrop")) {
+        if (e.key === "Escape")    { e.preventDefault(); closePalette(); }
+        else if (e.key === "ArrowDown") { e.preventDefault(); moveSel(+1); }
+        else if (e.key === "ArrowUp")   { e.preventDefault(); moveSel(-1); }
+        else if (e.key === "Enter")     { e.preventDefault(); go(visibleItems[selIdx]); }
+        return;
+      }
 
-      if (e.key === "Escape") {
-        e.preventDefault();
-        closePalette();
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        moveSel(+1);
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        moveSel(-1);
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        go(visibleItems[selIdx]);
+      // ── Bank Rec ショートカット ──
+      // 入力欄にフォーカスがある / 修飾キーあり → スキップ
+      if (!brActive) return;
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const lines = brLines();
+      if (!lines.length) return;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          brIdx = Math.min(brIdx + 1, lines.length - 1);
+          brHighlight(lines, brIdx);
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          brIdx = Math.max(brIdx - 1, 0);
+          brHighlight(lines, brIdx);
+          break;
+        case "m": case "M": e.preventDefault(); brClickAction("a.t1"); break;
+        case "c": case "C": e.preventDefault(); brClickAction("a.t2"); break;
+        case "t": case "T": e.preventDefault(); brClickAction("a.t3"); break;
+        case "d": case "D": e.preventDefault(); brClickAction("a.t4"); break;
       }
     },
-    true // capture: Xeroの内部イベントより先に取る
+    true
   );
 
   // ─────────────────────────────────────────
-  // 6. SPA 遷移でパレットを自動クローズ
+  // 7. ページ別機能の起動 / 終了
+  // ─────────────────────────────────────────
+  function bootFeatures() {
+    closePalette();
+    const path = location.pathname.toLowerCase();
+
+    if (path.includes("bankrec")) {
+      // DOMの準備を待ってから初期化
+      const tryInit = (attempts = 0) => {
+        if (document.getElementById("ItemsToReconcile")) {
+          brInit();
+        } else if (attempts < 20) {
+          setTimeout(() => tryInit(attempts + 1), 300);
+        }
+      };
+      tryInit();
+    } else {
+      brTeardown();
+    }
+  }
+
+  // ─────────────────────────────────────────
+  // 8. SPA 遷移対応
   // ─────────────────────────────────────────
   const _push = history.pushState.bind(history);
   history.pushState = function (...a) {
     _push(...a);
-    closePalette();
+    setTimeout(bootFeatures, 100);
   };
-  window.addEventListener("popstate", closePalette);
+  window.addEventListener("popstate", () => setTimeout(bootFeatures, 100));
+
+  // 初回起動
+  bootFeatures();
 
   console.log(
-    "%c[Xero Power] v0.1.0 ✅  ⌘K でコマンドパレット",
+    "%c[Xero Power] v0.2.0 ✅  ⌘K パレット | Bank Rec: ↑↓ M C T D",
     "color:#0a7a4b;font-weight:bold;font-size:13px"
   );
 })();
