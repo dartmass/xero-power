@@ -78,7 +78,7 @@ Xero Power never reads your accounting data, never touches your credentials, and
 xero, keyboard shortcuts, command palette, bank reconciliation, accounting, bookkeeper, productivity, xero power, xero tools
 
 ## Support URL
-https://github.com/honmashouzou/xero-power
+https://github.com/dartmass/xero-power
 
 ## Privacy policy URL
-(Host privacy-policy.html on GitHub Pages — see below)
+https://dartmass.github.io/xero-power/privacy-policy.html
