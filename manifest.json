@@ -1,8 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "Xero Power",
+  "name": "Xero Power — Shortcuts & Command Palette",
   "version": "0.2.0",
-  "description": "Keyboard-first power tools for Xero — command palette, shortcuts, and more.",
+  "description": "Keyboard-first power tools for Xero. ⌘K command palette, bank rec shortcuts, and more.",
+  "icons": {
+    "16":  "icons/icon16.png",
+    "48":  "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Xero Power",
+    "default_icon": {
+      "16":  "icons/icon16.png",
+      "48":  "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["https://*.xero.com/*"],
