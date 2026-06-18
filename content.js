@@ -1,5 +1,5 @@
 /**
- * Xero Power — content.js  v0.3.0
+ * Xero Power — content.js  v0.4.0
  * MVP: Command Palette (⌘K / Ctrl+K)
  *
  * Xero上の任意のページで ⌘K を押すと、
@@ -11,7 +11,7 @@
 
   // 二重読み込み防止
   if (window.__xeroPower) return;
-  window.__xeroPower = "0.3.0";
+  window.__xeroPower = "0.4.0";
 
   // ─────────────────────────────────────────
   // 1. Xero ページ一覧（コマンドパレットのデータ）
@@ -399,6 +399,19 @@
   let visibleItems = [];
   let topPages = [];
 
+  // カスタムショートカット（Pro）。デフォルト値はここ。
+  let SC = { palette: 'k', match: 'm', create: 'c', transfer: 't', discuss: 'd' };
+
+  // storageからショートカット設定を読み込む
+  chrome.storage.local.get(['xp_shortcuts']).then(data => {
+    const s = data.xp_shortcuts || {};
+    // パレットトリガーは "⌘K" 表示だが内部は key='k'
+    SC.match    = (s.match    || 'M').toLowerCase();
+    SC.create   = (s.create   || 'C').toLowerCase();
+    SC.transfer = (s.transfer || 'T').toLowerCase();
+    SC.discuss  = (s.discuss  || 'D').toLowerCase();
+  }).catch(() => {});
+
   function loadTopPages() {
     if (!chrome?.storage?.local) return Promise.resolve();
     return chrome.storage.local.get(["xp_usage"]).then((data) => {
@@ -704,10 +717,13 @@
           brIdx = Math.max(brIdx - 1, 0);
           brHighlight(lines, brIdx);
           break;
-        case "m": case "M": e.preventDefault(); brClickAction("a.t1"); break;
-        case "c": case "C": e.preventDefault(); brClickAction("a.t2"); break;
-        case "t": case "T": e.preventDefault(); brClickAction("a.t3"); break;
-        case "d": case "D": e.preventDefault(); brClickAction("a.t4"); break;
+        default: {
+          const k = e.key.toLowerCase();
+          if (k === SC.match)    { e.preventDefault(); brClickAction("a.t1"); }
+          else if (k === SC.create)   { e.preventDefault(); brClickAction("a.t2"); }
+          else if (k === SC.transfer) { e.preventDefault(); brClickAction("a.t3"); }
+          else if (k === SC.discuss)  { e.preventDefault(); brClickAction("a.t4"); }
+        }
       }
     },
     true
@@ -749,7 +765,7 @@
   bootFeatures();
 
   console.log(
-    "%c[Xero Power] v0.3.0 ✅  ⌘K パレット | Most used | Bank Rec: ↑↓ M C T D",
+    "%c[Xero Power] v0.4.0 ✅  ⌘K パレット | Most used | Bank Rec: ↑↓ + custom keys | Pro: options page",
     "color:#0a7a4b;font-weight:bold;font-size:13px"
   );
 })();
