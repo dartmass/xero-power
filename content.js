@@ -1,5 +1,5 @@
 /**
- * Xero Power — content.js  v0.1.0
+ * Xero Power — content.js  v0.3.0
  * MVP: Command Palette (⌘K / Ctrl+K)
  *
  * Xero上の任意のページで ⌘K を押すと、
@@ -11,7 +11,7 @@
 
   // 二重読み込み防止
   if (window.__xeroPower) return;
-  window.__xeroPower = "0.1.0";
+  window.__xeroPower = "0.3.0";
 
   // ─────────────────────────────────────────
   // 1. Xero ページ一覧（コマンドパレットのデータ）
@@ -328,6 +328,12 @@
       color: #9aa0b0; text-transform: uppercase;
       padding: 8px 16px 3px;
     }
+    .xp-group-label--top {
+      color: #0a7a4b;
+    }
+    .xp-group-divider {
+      height: 1px; background: #eaecf0; margin: 4px 14px 2px;
+    }
 
     .xp-item {
       display: flex; align-items: center; justify-content: space-between;
@@ -391,6 +397,29 @@
   // ─────────────────────────────────────────
   let selIdx = 0;
   let visibleItems = [];
+  let topPages = [];
+
+  function loadTopPages() {
+    if (!chrome?.storage?.local) return Promise.resolve();
+    return chrome.storage.local.get(["xp_usage"]).then((data) => {
+      const usage = data.xp_usage || {};
+      topPages = Object.entries(usage)
+        .filter(([, n]) => n >= 2)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([label]) => PAGES.find((p) => p.label === label))
+        .filter(Boolean);
+    }).catch(() => { topPages = []; });
+  }
+
+  function trackUsage(label) {
+    if (!chrome?.storage?.local) return;
+    chrome.storage.local.get(["xp_usage"]).then((data) => {
+      const usage = data.xp_usage || {};
+      usage[label] = (usage[label] || 0) + 1;
+      chrome.storage.local.set({ xp_usage: usage });
+    }).catch(() => {});
+  }
 
   function injectCss() {
     if (document.getElementById("xp-styles")) return;
@@ -409,39 +438,59 @@
     return map;
   }
 
-  function renderList(items) {
-    visibleItems = items;
-    selIdx = Math.min(selIdx, Math.max(0, items.length - 1));
+  function makeItemHtml(item, idx, selected) {
+    return `
+      <div class="xp-item ${selected ? "xp-sel" : ""}" data-idx="${idx}">
+        <div class="xp-item-left">
+          <div class="xp-icon">${CAT_ICON[item.cat] ?? "📌"}</div>
+          <div class="xp-item-text">
+            <div class="xp-label">${item.label}</div>
+            <div class="xp-sub">${item.sub ?? ""}</div>
+          </div>
+        </div>
+        <span class="xp-cat">${item.cat}</span>
+      </div>`;
+  }
+
+  function renderList(items, query = "") {
     const list = document.getElementById("xp-list");
     if (!list) return;
 
-    if (items.length === 0) {
-      list.innerHTML = '<div id="xp-empty">No results — try another keyword</div>';
-      return;
-    }
-
-    const groups = groupBy(items);
+    const allItems = [];
     let html = "";
     let flatIdx = 0;
 
+    // ── Most used セクション（検索中は非表示）──
+    if (!query && topPages.length > 0) {
+      html += `<div class="xp-group-label xp-group-label--top">⭐ Most used</div>`;
+      for (const item of topPages) {
+        html += makeItemHtml(item, flatIdx, flatIdx === selIdx);
+        allItems.push(item);
+        flatIdx++;
+      }
+      html += `<div class="xp-group-divider"></div>`;
+    }
+
+    if (items.length === 0) {
+      if (query) {
+        list.innerHTML = '<div id="xp-empty">No results — try another keyword</div>';
+        visibleItems = [];
+        return;
+      }
+    }
+
+    const groups = groupBy(items);
     groups.forEach((groupItems, cat) => {
       html += `<div class="xp-group-label">${cat}</div>`;
       for (const item of groupItems) {
-        const idx = flatIdx++;
-        html += `
-          <div class="xp-item ${idx === selIdx ? "xp-sel" : ""}" data-idx="${idx}">
-            <div class="xp-item-left">
-              <div class="xp-icon">${CAT_ICON[item.cat] ?? "📌"}</div>
-              <div class="xp-item-text">
-                <div class="xp-label">${item.label}</div>
-                <div class="xp-sub">${item.sub ?? ""}</div>
-              </div>
-            </div>
-            <span class="xp-cat">${item.cat}</span>
-          </div>`;
+        html += makeItemHtml(item, flatIdx, flatIdx === selIdx);
+        allItems.push(item);
+        flatIdx++;
       }
     });
 
+    visibleItems = allItems;
+    selIdx = Math.min(selIdx, Math.max(0, allItems.length - 1));
     list.innerHTML = html;
     list.querySelectorAll(".xp-item").forEach((el) => {
       el.addEventListener("mouseenter", () => {
@@ -470,6 +519,7 @@
 
   function go(item) {
     if (!item) return;
+    trackUsage(item.label);
     closePalette();
     window.location.href = buildUrl(item.path);
   }
@@ -500,14 +550,16 @@
       </div>`;
 
     document.body.appendChild(backdrop);
-    renderList(PAGES);
 
     const input = document.getElementById("xp-input");
     input.focus();
 
+    loadTopPages().then(() => renderList(PAGES));
+
     input.addEventListener("input", () => {
       selIdx = 0;
-      renderList(search(input.value));
+      const q = input.value;
+      renderList(q ? search(q) : PAGES, q);
     });
 
     // Backdrop クリックで閉じる
@@ -697,7 +749,7 @@
   bootFeatures();
 
   console.log(
-    "%c[Xero Power] v0.2.0 ✅  ⌘K パレット | Bank Rec: ↑↓ M C T D",
+    "%c[Xero Power] v0.3.0 ✅  ⌘K パレット | Most used | Bank Rec: ↑↓ M C T D",
     "color:#0a7a4b;font-weight:bold;font-size:13px"
   );
 })();
