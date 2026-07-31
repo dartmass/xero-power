@@ -7,19 +7,45 @@ Xero Power — Shortcuts & Command Palette
 Productivity
 
 ## Short description (132 chars max)
-⌘K command palette + keyboard shortcuts for Xero. Jump to any screen in 2 seconds. Reconcile bank transactions without clicking.
+Ctrl+K command palette + keyboard shortcuts for Xero. Jump to any screen in 2 seconds. Reconcile transactions without clicking.
 
 ## Full description (paste into Chrome Web Store)
 
+> 掲載文の先頭には変更履歴を置く運用。新バージョンごとに1ブロック追記する。
+
+```
+v0.8.0
+・You can now send questions and feature requests straight from the extension popup
+
+v0.7.1
+・Fixed custom command palette shortcut not taking effect (Pro)
+・Shortcut changes now apply instantly — no page reload needed
+・Shortcuts now display correctly on ChromeOS and Windows (Ctrl instead of ⌘)
+・Interface text is now consistently in English
+
+v0.7.0
+・Added a welcome page that opens on first install — explains all features and how to use them
+・Added a one-time toast notification on your first Xero visit confirming the extension is active
+
+v0.5.0
+・Invoicing "Approve" default button
+
+v0.4.1
+・Customize your Bank Rec shortcuts, remap any key to fit your workflow, and unlock settings via the new Pro plan
+
+v0.3.0
+・⭐ Most Used — the command palette now learns from you
+```
+
 **Stop clicking through menus. Start flying through Xero.**
 
-Xero Power adds the keyboard-first workflow that Xero power users have been asking for — a command palette and bank reconciliation shortcuts that work the way your brain does.
+Xero Power adds the keyboard-first workflow that Xero power users have been asking for — a command palette, bank reconciliation shortcuts, and a safer Approve button.
 
 ---
 
-**⌘K Command Palette**
+**Ctrl+K Command Palette**
 
-Press ⌘K (Mac) or Ctrl+K (Windows) anywhere in Xero to open a searchable list of 27+ screens.
+Press Ctrl+K anywhere in Xero — on Windows, on a Chromebook, or ⌘K on a Mac — to open a searchable list of 28 screens.
 
 • Bank Reconciliation → type "rec" → Enter
 • New Invoice → type "inv" → Enter
@@ -27,7 +53,9 @@ Press ⌘K (Mac) or Ctrl+K (Windows) anywhere in Xero to open a searchable list 
 • Aged Receivables → type "aged" → Enter
 • Any report, contact, or settings page — just type it
 
-No more: Dashboard → Accounting → Bank Accounts → Reconcile. Just press ⌘K and go.
+No more: Dashboard → Accounting → Bank Accounts → Reconcile. Just press Ctrl+K and go.
+
+The palette learns which screens you open most and floats them to the top, so after a week you barely type anything.
 
 ---
 
@@ -37,13 +65,22 @@ Stop reaching for your mouse on every single transaction.
 
 | Key | Action |
 |-----|--------|
-| ↑ / ↓ | Navigate between transactions |
-| M | Match to existing transaction |
-| C | Create new transaction |
+| ↑ / ↓ | Move between transactions |
+| M | Match to an existing transaction |
+| C | Create a new transaction |
 | T | Transfer between accounts |
 | D | Mark for discussion |
+| Enter | Confirm and move on |
 
-A subtle hint bar at the bottom of the screen shows you the shortcuts while you work.
+A hint bar at the top of the reconciliation screen shows the shortcuts while you work, and the row you are on is highlighted so you never lose your place.
+
+---
+
+**A safer Approve button**
+
+Xero's default button on an invoice is "Approve & email" — so one stray click sends an email to your client. 440 people asked Xero to let them change it. Xero said there are no plans to and locked the thread.
+
+Xero Power changes the default to plain **Approve**. Emailing is still one click away in the dropdown, exactly where it was. Nothing is removed; the default is just the safe one. You can switch it back off in settings at any time.
 
 ---
 
@@ -57,13 +94,15 @@ Inspired by RightTool for QuickBooks. Now Xero users get the same treatment.
 
 **Privacy**
 
-Xero Power never reads your accounting data and never touches your credentials. It only reads the page structure to inject shortcut listeners, and your Xero data never leaves your browser. No analytics, no tracking, no ads. The extension only contacts an outside service when you activate a Pro license key or choose to open the feedback form. Full privacy policy: [link]
+Xero Power reads Xero page structure only, so it can place the palette and the shortcuts. It never touches your accounting data, credentials, or company information, and none of that ever leaves your browser. No analytics, no tracking, no ads.
+
+The only time the extension contacts an outside service is when you activate a Pro license key, or when you choose to open the feedback form. Full privacy policy: https://dartmass.github.io/xero-power/privacy-policy.html
 
 ---
 
 ## Screenshots needed (take in Xero Demo Company)
 
-1. **Command palette open** — press ⌘K, type "rec", show Bank Reconciliation highlighted
+1. **Command palette open** — press Ctrl+K, type "rec", show Bank Reconciliation highlighted
    - Window size: 1280×800
    - File: screenshot-01-palette.png
 
