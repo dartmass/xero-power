@@ -57,7 +57,7 @@ Inspired by RightTool for QuickBooks. Now Xero users get the same treatment.
 
 **Privacy**
 
-Xero Power never reads your accounting data, never touches your credentials, and never sends anything to a server. It only reads the page structure to inject shortcut listeners. Full privacy policy: [link]
+Xero Power never reads your accounting data and never touches your credentials. It only reads the page structure to inject shortcut listeners, and your Xero data never leaves your browser. No analytics, no tracking, no ads. The extension only contacts an outside service when you activate a Pro license key or choose to open the feedback form. Full privacy policy: [link]
 
 ---
 

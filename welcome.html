@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welcome to Xero Power</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f9fafb;
+      color: #111827;
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #0a7a4b;
+      color: #fff;
+      text-align: center;
+      padding: 40px 24px 36px;
+    }
+    .header-badge {
+      display: inline-block;
+      background: rgba(255,255,255,.15);
+      border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+      letter-spacing: .06em; text-transform: uppercase;
+      padding: 4px 14px; margin-bottom: 14px;
+    }
+    .header h1 {
+      font-size: 30px; font-weight: 800; line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .header p {
+      font-size: 16px; opacity: .85; max-width: 520px; margin: 0 auto 24px;
+    }
+    .header-bullets {
+      display: inline-flex; flex-direction: column; gap: 6px;
+      text-align: left; background: rgba(0,0,0,.15);
+      border-radius: 10px; padding: 14px 20px;
+      font-size: 14px;
+    }
+    .header-bullets li {
+      list-style: none;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .header-bullets li::before {
+      content: '✓';
+      background: rgba(255,255,255,.25);
+      border-radius: 50%;
+      width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ── Main ── */
+    .main {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+
+    /* ── Section ── */
+    .section {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      padding: 28px 28px 24px;
+      margin-top: 24px;
+    }
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: #9aa0b0;
+      margin-bottom: 8px;
+    }
+    .section h2 {
+      font-size: 20px; font-weight: 700; color: #111827;
+      margin-bottom: 10px;
+    }
+    .section > p, .section .lead {
+      font-size: 14px; color: #374151; margin-bottom: 8px;
+    }
+    .section .sub-head {
+      font-size: 13px; font-weight: 700; color: #111827;
+      margin: 18px 0 6px;
+    }
+    .section .note {
+      font-size: 13px; color: #6b7280;
+      background: #f9fafb; border-left: 3px solid #e5e7eb;
+      padding: 10px 14px; border-radius: 0 6px 6px 0;
+      margin-top: 14px;
+    }
+    .section .note strong { color: #374151; }
+
+    /* ── Before / After ── */
+    .ba-row {
+      display: flex; gap: 14px; margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .ba-box {
+      flex: 1; min-width: 220px;
+      border-radius: 8px; padding: 14px 16px;
+    }
+    .ba-box.before {
+      background: #fff5f5; border: 1px solid #fecaca;
+    }
+    .ba-box.after {
+      background: #f0fdf4; border: 1px solid #86efac;
+    }
+    .ba-label {
+      font-size: 11px; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; margin-bottom: 10px;
+    }
+    .ba-box.before .ba-label { color: #dc2626; }
+    .ba-box.after  .ba-label { color: #16a34a; }
+    .ba-buttons { display: flex; gap: 6px; align-items: center; }
+    .ba-btn {
+      border-radius: 5px; padding: 7px 14px;
+      font-size: 13px; font-weight: 600; cursor: default;
+      border: none;
+    }
+    .ba-btn.primary-bad  { background: #ef4444; color: #fff; }
+    .ba-btn.primary-good { background: #0a7a4b; color: #fff; }
+    .ba-btn.caret {
+      background: #e5e7eb; color: #374151;
+      padding: 7px 10px;
+    }
+    .ba-caption {
+      font-size: 12px; margin-top: 8px; line-height: 1.4;
+    }
+    .ba-box.before .ba-caption { color: #dc2626; }
+    .ba-box.after  .ba-caption { color: #16a34a; }
+
+    /* ── Benefit callout ── */
+    .benefit-box {
+      background: #f0fdf4; border: 1px solid #86efac;
+      border-radius: 8px; padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 13px; color: #166534;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .benefit-box .icon { font-size: 18px; flex-shrink: 0; line-height: 1.3; }
+    .benefit-box strong { color: #14532d; }
+
+    /* ── Video ── */
+    .video-wrap {
+      margin-top: 18px;
+      border-radius: 8px; overflow: hidden;
+      background: #111827;
+      aspect-ratio: 16/9;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .video-wrap iframe { width: 100%; height: 100%; border: none; }
+    .video-placeholder {
+      text-align: center; color: #6b7280; padding: 40px;
+    }
+    .video-placeholder .play-icon { font-size: 48px; margin-bottom: 10px; }
+    .video-placeholder p { font-size: 13px; color: #9ca3af; }
+
+    /* ── Shortcut demo ── */
+    .shortcut-demo {
+      display: flex; align-items: center; gap: 10px;
+      margin: 16px 0 14px;
+    }
+    .kbd {
+      background: #1f2937; color: #f9fafb;
+      border-radius: 6px; padding: 6px 12px;
+      font-size: 16px; font-weight: 700;
+      font-family: monospace;
+      box-shadow: 0 2px 0 #111; line-height: 1;
+    }
+    .kbd-plus { font-size: 14px; color: #9aa0b0; }
+    .shortcut-label { font-size: 15px; font-weight: 600; color: #374151; }
+
+    /* ── Palette mock ── */
+    .palette-mock {
+      background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 10px; overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,.1);
+      margin: 14px 0;
+      font-size: 13px;
+    }
+    .pm-input {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px; border-bottom: 1px solid #eaecf0;
+      color: #9aa0b0;
+    }
+    .pm-input .pm-cursor {
+      color: #0a7a4b; font-weight: 700; animation: blink 1s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .pm-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px; gap: 10px;
+    }
+    .pm-row.pm-sel { background: #f0f6ff; }
+    .pm-icon {
+      width: 26px; height: 26px; border-radius: 6px;
+      background: #f4f5f7; display: flex; align-items: center;
+      justify-content: center; font-size: 13px; flex-shrink: 0;
+    }
+    .pm-info { flex: 1; }
+    .pm-label { font-size: 13px; font-weight: 500; color: #111827; }
+    .pm-sub { font-size: 11px; color: #6b7280; }
+    .pm-cat {
+      font-size: 11px; color: #6b7280;
+      background: #f4f5f7; border-radius: 4px; padding: 1px 7px;
+    }
+    .pm-row.pm-sel .pm-cat { background: #dbeafe; color: #1d4ed8; }
+
+    .feature-list {
+      list-style: none; margin-top: 10px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px;
+    }
+    .feature-list li {
+      font-size: 13px; color: #374151;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .feature-list li::before {
+      content: '→'; color: #0a7a4b; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ── Workflow steps ── */
+    .steps {
+      margin: 16px 0; display: flex; flex-direction: column; gap: 10px;
+    }
+    .step {
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .step-num {
+      background: #0a7a4b; color: #fff;
+      border-radius: 50%; width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 1px;
+    }
+    .step-text { font-size: 13px; color: #374151; line-height: 1.5; }
+    .step-text strong { color: #111827; }
+    .step-key {
+      display: inline-block;
+      background: #1f2937; color: #fff;
+      border-radius: 4px; padding: 1px 7px;
+      font-family: monospace; font-size: 12px; font-weight: 700;
+    }
+
+    /* ── Shortcuts grid ── */
+    .shortcuts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 10px; margin-top: 16px;
+    }
+    .sc-chip {
+      background: #f4f5f7; border: 1px solid #e5e7eb;
+      border-radius: 8px; padding: 10px 12px; text-align: center;
+    }
+    .sc-key {
+      display: inline-block;
+      background: #0a7a4b; color: #fff;
+      border-radius: 4px; padding: 2px 9px;
+      font-size: 14px; font-weight: 700;
+      font-family: monospace; margin-bottom: 4px;
+    }
+    .sc-enter {
+      display: inline-block;
+      background: #374151; color: #fff;
+      border-radius: 4px; padding: 2px 9px;
+      font-size: 14px; font-weight: 700;
+      font-family: monospace; margin-bottom: 4px;
+    }
+    .sc-desc { font-size: 11px; color: #6b7280; }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center; margin-top: 32px; padding: 24px 20px;
+    }
+    .footer-free {
+      font-size: 13px; color: #6b7280; margin-bottom: 16px;
+    }
+    .footer-free strong { color: #111827; }
+    .review-btn {
+      display: inline-block;
+      background: #0a7a4b; color: #fff;
+      border-radius: 8px; padding: 12px 24px;
+      font-size: 14px; font-weight: 600;
+      text-decoration: none;
+    }
+    .review-btn:hover { background: #086040; }
+    .footer-note {
+      font-size: 12px; color: #9aa0b0; margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-badge">Xero Power is active ✓</div>
+    <h1>Your Xero just got faster</h1>
+    <p>Three things changed the moment you installed this. Here's what they are and how to use them.</p>
+    <ul class="header-bullets">
+      <li>Bank rec by keyboard — Match, Create, Confirm</li>
+      <li>Jump anywhere with Ctrl+K — no mouse needed</li>
+      <li>No more accidental "Approve &amp; email"</li>
+    </ul>
+  </div>
+
+  <div class="main">
+
+    <!-- § 1 Bank Rec shortcuts -->
+    <div class="section">
+      <div class="section-label">Change 1 of 3</div>
+      <h2>Process bank statements without the mouse</h2>
+      <p class="lead">
+        If you reconcile regularly, the Bank Reconciliation screen is where you spend most of your time.
+        Normally it's click Match, wait, click OK, scroll to the next line, repeat — dozens of times.
+      </p>
+      <p>
+        Xero Power adds keyboard shortcuts that let you fly through the list.
+        Each statement line is highlighted in green as you go, so you always know where you are.
+      </p>
+
+      <p class="sub-head">How to use it — step by step</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            Open Bank Reconciliation. A green bar appears at the top confirming shortcuts are active.
+            The first line is highlighted.
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            Press <span class="step-key">M</span> to Match, <span class="step-key">C</span> to Create,
+            or <span class="step-key">T</span> to Transfer — whichever applies to that line.
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            After matching, press <span class="step-key">↵ Enter</span> to confirm and move on.
+            For Create or Transfer, fill in the form that opens, then press Enter to save.
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text">
+            Use <span class="step-key">↑</span> / <span class="step-key">↓</span> to skip around
+            if you want to handle lines out of order.
+          </div>
+        </div>
+      </div>
+
+      <div class="shortcuts-grid">
+        <div class="sc-chip">
+          <div class="sc-key">↑ ↓</div>
+          <div class="sc-desc">Navigate rows</div>
+        </div>
+        <div class="sc-chip">
+          <div class="sc-key">M</div>
+          <div class="sc-desc">Match</div>
+        </div>
+        <div class="sc-chip">
+          <div class="sc-key">C</div>
+          <div class="sc-desc">Create</div>
+        </div>
+        <div class="sc-chip">
+          <div class="sc-key">T</div>
+          <div class="sc-desc">Transfer</div>
+        </div>
+        <div class="sc-chip">
+          <div class="sc-key">D</div>
+          <div class="sc-desc">Discuss</div>
+        </div>
+        <div class="sc-chip">
+          <div class="sc-enter">↵</div>
+          <div class="sc-desc">OK / Save</div>
+        </div>
+      </div>
+
+      <div class="benefit-box">
+        <span class="icon">🎯</span>
+        <div>
+          <strong>Want to customise the keys?</strong> M, C, T, D are the defaults.
+          If you're on Pro, you can remap them to any key you prefer in Settings.
+        </div>
+      </div>
+    </div>
+
+    <!-- § 2 Video -->
+    <div class="section">
+      <div class="section-label">See it in action</div>
+      <h2>60-second demo</h2>
+      <p>Watch how the default changes, and see the command palette and bank rec shortcuts in action.</p>
+      <div class="video-wrap" id="video-wrap">
+        <!-- Replace VIDEO_ID below with your YouTube video ID after recording -->
+        <div class="video-placeholder">
+          <div class="play-icon">▶</div>
+          <p>Demo coming soon</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- § 3 Command Palette -->
+    <div class="section">
+      <div class="section-label">Change 2 of 3</div>
+      <h2>Jump anywhere in Xero — without touching the mouse</h2>
+      <p class="lead">
+        Getting to Bank Reconciliation normally means opening the menu, hovering over Accounting,
+        then clicking through a submenu. It's 3–5 clicks every time.
+      </p>
+      <p>
+        Press <strong id="shortcut-label">Ctrl+K</strong> from any screen in Xero and a search box appears.
+        Type the first two letters of where you want to go — it's there instantly.
+        Hit Enter and you're navigating.
+      </p>
+
+      <div class="shortcut-demo">
+        <div id="key-display">
+          <span class="kbd">Ctrl</span>
+          <span class="kbd-plus"> + </span>
+          <span class="kbd">K</span>
+        </div>
+        <span class="shortcut-label">Open from anywhere in Xero</span>
+      </div>
+
+      <!-- Mock palette -->
+      <div class="palette-mock">
+        <div class="pm-input">
+          <span>🔍</span>
+          <span>ban<span class="pm-cursor">|</span></span>
+        </div>
+        <div class="pm-row pm-sel">
+          <div class="pm-icon">🏦</div>
+          <div class="pm-info">
+            <div class="pm-label">Bank Reconciliation</div>
+            <div class="pm-sub">Match transactions from your bank</div>
+          </div>
+          <span class="pm-cat">Banking</span>
+        </div>
+        <div class="pm-row">
+          <div class="pm-icon">🏦</div>
+          <div class="pm-info">
+            <div class="pm-label">Bank Accounts</div>
+            <div class="pm-sub">View all connected bank accounts</div>
+          </div>
+          <span class="pm-cat">Banking</span>
+        </div>
+        <div class="pm-row">
+          <div class="pm-icon">🏦</div>
+          <div class="pm-info">
+            <div class="pm-label">Bank Rules</div>
+            <div class="pm-sub">Auto-code recurring transactions</div>
+          </div>
+          <span class="pm-cat">Banking</span>
+        </div>
+      </div>
+
+      <p class="sub-head">What you can reach with Ctrl+K</p>
+      <ul class="feature-list">
+        <li>Bank Reconciliation</li>
+        <li>Profit &amp; Loss</li>
+        <li>Invoices &amp; Bills</li>
+        <li>Balance Sheet</li>
+        <li>Chart of Accounts</li>
+        <li>Aged Receivables</li>
+        <li>Manual Journals</li>
+        <li>Any of 25+ screens</li>
+      </ul>
+
+      <div class="benefit-box">
+        <span class="icon">⚡</span>
+        <div>
+          <strong>Pro tip:</strong> The palette remembers your most-used screens and shows them at the
+          top — so after a week, your two most common destinations are always the first two results,
+          even before you start typing.
+        </div>
+      </div>
+    </div>
+
+    <!-- § 4 The Approve fix -->
+    <div class="section">
+      <div class="section-label">Change 3 of 3</div>
+      <h2>The default Approve button no longer sends email</h2>
+      <p class="lead">
+        Xero's out-of-the-box button says "Approve &amp; email" — it fires off an email to your client
+        <em>every single time</em> you approve. One misclick and your client gets an unexpected message.
+        Over 440 users asked Xero to change this. Xero declined.
+      </p>
+      <p>
+        Xero Power quietly flips the default so the main button just says <strong>Approve</strong>.
+        The email option isn't gone — it's still in the dropdown (▾) whenever you genuinely need it.
+      </p>
+
+      <div class="ba-row">
+        <div class="ba-box before">
+          <div class="ba-label">Before — Xero default</div>
+          <div class="ba-buttons">
+            <button class="ba-btn primary-bad">Approve &amp; email</button>
+            <button class="ba-btn caret">▾</button>
+          </div>
+          <div class="ba-caption">Every approval triggers an email — even when you don't want one</div>
+        </div>
+        <div class="ba-box after">
+          <div class="ba-label">After — Xero Power</div>
+          <div class="ba-buttons">
+            <button class="ba-btn primary-good">Approve</button>
+            <button class="ba-btn caret">▾</button>
+          </div>
+          <div class="ba-caption">Approves silently. Click ▾ when you actually want to send email</div>
+        </div>
+      </div>
+
+      <div class="benefit-box">
+        <span class="icon">💡</span>
+        <div>
+          <strong>What this means day-to-day:</strong> You can approve 20 bills in a row and
+          zero emails go out. When a client does need a copy, click the ▾ and choose
+          "Approve &amp; email" — it's right there. Nothing is removed; the default is just safer.
+        </div>
+      </div>
+
+      <p class="note">
+        This works on both <strong>Invoices</strong> and <strong>Bills</strong>.
+        You can turn either off in Settings if you ever want the old behaviour back.
+      </p>
+    </div>
+
+    <!-- § 5 Footer -->
+    <div class="footer">
+      <p class="footer-free">
+        <strong>Free.</strong> No account. No subscription. Your Xero data never leaves your browser.
+      </p>
+      <a class="review-btn" id="review-link" href="#" target="_blank" rel="noopener">
+        ★ Leave a review on the Chrome Web Store
+      </a>
+      <p class="footer-note">Reviews help other Xero users find this — it takes about 30 seconds.</p>
+    </div>
+
+  </div>
+
+  <script>
+    // Mac vs ChromeOS/Windows shortcut display
+    // ChromeOS: userAgentData.platform="Chrome OS" → 非Mac なので Ctrl+K のまま
+    const isMac = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '');
+    if (isMac) {
+      document.getElementById('shortcut-label').textContent = '⌘K';
+      document.getElementById('key-display').innerHTML =
+        '<span class="kbd">⌘</span><span class="kbd-plus"> + </span><span class="kbd">K</span>';
+    }
+
+    // Video: swap placeholder once VIDEO_ID is known
+    const VIDEO_ID = ''; // ← YouTube video IDをここに入れる（例: 'dQw4w9WgXcQ'）
+    if (VIDEO_ID) {
+      const wrap = document.getElementById('video-wrap');
+      wrap.innerHTML =
+        `<iframe src="https://www.youtube.com/embed/${VIDEO_ID}?rel=0" ` +
+        `allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ` +
+        `allowfullscreen></iframe>`;
+    }
+
+    // Chrome Web Store review link (auto-filled from extension ID)
+    const EXTENSION_ID = chrome?.runtime?.id || '';
+    const reviewEl = document.getElementById('review-link');
+    if (EXTENSION_ID) {
+      reviewEl.href =
+        `https://chromewebstore.google.com/detail/${EXTENSION_ID}/reviews`;
+    }
+  </script>
+
+</body>
+</html>

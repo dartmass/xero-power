@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Xero Power — Shortcuts & Command Palette",
-  "version": "0.4.0",
-  "description": "Keyboard-first power tools for Xero. ⌘K command palette, bank rec shortcuts, and more.",
+  "version": "0.7.1",
+  "description": "Keyboard-first power tools for Xero. ⌘K command palette, bank rec shortcuts, default-to-Approve for invoices, and more.",
   "icons": {
     "16":  "icons/icon16.png",
     "48":  "icons/icon48.png",
@@ -20,6 +20,9 @@
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "background.js"
   },
   "permissions": ["storage"],
   "host_permissions": ["https://api.polar.sh/*"],

@@ -44,6 +44,32 @@
       font-size: 13px; color: #6b7280; margin-bottom: 18px;
     }
 
+    /* Toggle switch */
+    .toggle-row {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px; padding: 12px 0; border-bottom: 1px solid #f3f4f6;
+    }
+    .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .toggle-row:first-of-type { padding-top: 0; }
+    .toggle-label { font-size: 14px; font-weight: 500; color: #111827; margin-bottom: 2px; }
+    .toggle-desc  { font-size: 12px; color: #6b7280; }
+    .toggle-switch { position: relative; flex-shrink: 0; width: 40px; height: 22px; margin-top: 1px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: #d1d5db; border-radius: 22px; cursor: pointer;
+      transition: background .2s;
+    }
+    .toggle-slider::before {
+      content: ""; position: absolute;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; top: 3px; left: 3px;
+      transition: transform .2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    }
+    .toggle-switch input:checked + .toggle-slider { background: #0a7a4b; }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
     /* License */
     .license-row { display: flex; gap: 8px; }
     .license-input {
@@ -121,6 +147,7 @@
 
     .save-row { margin-top: 18px; display: flex; align-items: center; gap: 12px; }
     .save-msg { font-size: 13px; color: #0a7a4b; display: none; }
+
   </style>
 </head>
 <body>
@@ -146,6 +173,35 @@
       <div class="price-note">or $39/year &nbsp;·&nbsp; cancel any time</div>
     </div>
 
+    <!-- Behaviour toggles -->
+    <div class="card">
+      <div class="card-title">Behaviour</div>
+      <div class="card-sub">Customize how Xero Power modifies Xero's default actions.</div>
+
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Invoices — default to Approve only</div>
+          <div class="toggle-desc">Changes "Approve &amp; email" to just "Approve". Email is still one click away via the ▾ menu.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-invoice-approve" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Bills toggle: 一時非表示（Bills DOM確認後に復活） -->
+      <div class="toggle-row" style="display:none">
+        <div>
+          <div class="toggle-label">Bills — default to Approve and view next</div>
+          <div class="toggle-desc">Moves to the next draft bill after approving, speeding up bulk processing.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-bill-approve" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
     <!-- License key -->
     <div class="card">
       <div class="card-title">License key</div>
@@ -165,13 +221,13 @@
         Keyboard shortcuts
         <span class="pro-lock" id="pro-lock-label">🔒 Pro</span>
       </div>
-      <div class="card-sub">Customize which keys trigger each action.</div>
+      <div class="card-sub">Customize which keys trigger each action. The command palette always uses Ctrl (⌘ on Mac) — only the letter changes.</div>
 
       <div class="sc-grid">
         <div class="sc-field">
           <label>Command palette</label>
           <input class="sc-input" id="sc-palette" type="text" maxlength="12"
-                 placeholder="⌘K" disabled />
+                 placeholder="Ctrl+K" disabled />
         </div>
         <div class="sc-field">
           <label>Bank Rec — Match</label>

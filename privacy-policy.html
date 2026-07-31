@@ -16,50 +16,120 @@
     h1 { color: #0a7a4b; }
     h2 { margin-top: 2em; }
     a  { color: #0a7a4b; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1em;
+      font-size: 15px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid #e5e7eb;
+      vertical-align: top;
+    }
+    th { background: #f9fafb; font-weight: 600; }
+    .callout {
+      background: #f0fdf4;
+      border-left: 4px solid #0a7a4b;
+      padding: 14px 18px;
+      margin: 1.5em 0;
+      border-radius: 0 6px 6px 0;
+    }
   </style>
 </head>
 <body>
   <h1>Privacy Policy — Xero Power</h1>
-  <p><em>Last updated: June 2026</em></p>
+  <p><em>Last updated: July 2026</em></p>
 
   <h2>What Xero Power does</h2>
   <p>
     Xero Power is a Chrome extension that adds keyboard shortcuts and a command palette to
-    <a href="https://www.xero.com">xero.com</a>.
-    It runs entirely inside your browser.
+    <a href="https://www.xero.com">xero.com</a>. The features themselves run entirely inside
+    your browser.
   </p>
 
-  <h2>Data we collect</h2>
-  <p><strong>None.</strong></p>
+  <h2>Your Xero data</h2>
+  <div class="callout">
+    <strong>Your accounting data never leaves your browser.</strong> We do not read, store,
+    transmit, or share your transactions, invoices, bills, contacts, or account balances.
+  </div>
+  <ul>
+    <li>We do not access your Xero credentials or login information.</li>
+    <li>We do not use cookies, analytics, advertising, or tracking of any kind.</li>
+    <li>We do not build a profile of you or your business.</li>
+  </ul>
   <p>
-    Xero Power does not collect, store, transmit, or share any data about you or your
-    Xero account. Specifically:
+    The extension reads the <strong>structure of Xero web pages</strong> (the HTML DOM) solely
+    to attach keyboard shortcut listeners and draw the command-palette interface. That reading
+    happens locally, in the same way your browser already renders the page.
+  </p>
+
+  <h2>What is stored, and where</h2>
+  <p>
+    Settings are saved with Chrome's local storage API and stay on your own device. Nothing in
+    this list is uploaded anywhere:
   </p>
   <ul>
-    <li>We do not read your accounting data, transactions, invoices, or contacts.</li>
-    <li>We do not access your Xero credentials or login information.</li>
-    <li>We do not send any information to external servers.</li>
-    <li>We do not use cookies, analytics, or tracking of any kind.</li>
+    <li>Your keyboard shortcut preferences</li>
+    <li>A count of how many times you have navigated using the palette (used to show your
+        time-saved figure and to order your most-used screens)</li>
+    <li>Whether you have dismissed the onboarding notice</li>
+    <li>Your license key, if you have bought Pro</li>
   </ul>
 
-  <h2>What the extension does access</h2>
+  <h2>When the extension contacts an outside service</h2>
   <p>
-    The extension reads the <strong>structure of Xero web pages</strong> (the HTML DOM)
-    solely to inject keyboard shortcut listeners and the command-palette UI into your browser.
-    This is equivalent to what your browser already does when rendering the page — no data
-    leaves your machine.
+    There are three cases, and each one is triggered by an action you take. Outside of these,
+    the extension makes no network requests.
+  </p>
+  <table>
+    <tr>
+      <th>When</th>
+      <th>What is sent</th>
+      <th>To whom</th>
+    </tr>
+    <tr>
+      <td>You enter a Pro license key and click <strong>Activate</strong></td>
+      <td>The license key you typed, so it can be verified</td>
+      <td><a href="https://polar.sh/legal/privacy">Polar</a>, our payment provider</td>
+    </tr>
+    <tr>
+      <td>You click the feedback link in the extension popup</td>
+      <td>A form page opens in a new tab. Nothing is sent unless you fill it in and submit it</td>
+      <td><a href="https://policies.google.com/privacy">Google Forms</a></td>
+    </tr>
+    <tr>
+      <td>You uninstall the extension</td>
+      <td>A one-question survey page opens asking why. Nothing is sent unless you answer and
+          submit it. Closing the tab sends nothing</td>
+      <td><a href="https://policies.google.com/privacy">Google Forms</a></td>
+    </tr>
+  </table>
+  <p>
+    As with visiting any website, opening these pages means your IP address is visible to the
+    service hosting them. Neither form asks for your name, your email, or anything about your
+    Xero account.
   </p>
 
   <h2>Permissions</h2>
-  <p>
-    The only browser permission used is access to <code>*.xero.com</code> pages.
-    No other websites are accessed.
-  </p>
+  <ul>
+    <li><code>*.xero.com</code> — to add shortcuts and the command palette to Xero pages.</li>
+    <li><code>api.polar.sh</code> — to verify a Pro license key when you activate one.</li>
+    <li><code>storage</code> — to save your settings on your own device.</li>
+  </ul>
+  <p>No other websites are accessed.</p>
 
   <h2>Third parties</h2>
   <p>
-    We do not share any information with third parties because we do not collect any
-    information in the first place.
+    We do not sell, rent, or share your information with anyone. The only outside services
+    involved are the two listed above, and only in the situations described.
+  </p>
+
+  <h2>Changes to this policy</h2>
+  <p>
+    If the extension ever starts handling data differently, this page will be updated and the
+    date at the top will change.
   </p>
 
   <h2>Contact</h2>

@@ -17,6 +17,12 @@ rm -f "$OUT"
 zip -r "$OUT" \
   manifest.json \
   content.js \
+  background.js \
+  popup.html \
+  popup.js \
+  options.html \
+  options.js \
+  welcome.html \
   icons/
 
 echo ""

@@ -2,14 +2,18 @@
 
 // ── 設定: Polar で作成したプロダクトの情報を入れる ──────────────
 // TODO: Polar でプロダクト作成後に置き換える
-const POLAR_ORG_ID     = 'YOUR_POLAR_ORG_ID';
-const POLAR_BENEFIT_ID = 'YOUR_POLAR_BENEFIT_ID';
+const POLAR_ORG_ID     = '22affaff-7111-4f56-bc19-50507024e7f1';
+const POLAR_BENEFIT_ID = '156a2073-e417-4b2e-a56f-de3f4a19c2cb';
 // ──────────────────────────────────────────────────────────────
 
-const UPGRADE_URL = 'https://polar.sh/dartmass/xero-power'; // TODO: Polar設定後に変更
+const UPGRADE_URL = 'https://buy.polar.sh/polar_cl_Ol8WEFJ3AKG1X1680jxeq8XPBADxxuONwRp6N0FJfp4';
+
+// ユーザーの64%がChromeOS。⌘ キーは存在しないので Ctrl 表記に切り替える。
+// /i 必須: userAgentData.platform は "macOS"（小文字m）、navigator.platform は "MacIntel"
+const IS_MAC = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '');
 
 const DEFAULTS = {
-  palette:  '⌘K',
+  palette:  IS_MAC ? '⌘K' : 'Ctrl+K',
   match:    'M',
   create:   'C',
   transfer: 'T',
@@ -82,7 +86,10 @@ function loadShortcuts(sc) {
 }
 
 // ── 初期化 ────────────────────────────────────────────────────
-chrome.storage.local.get(['xp_pro', 'xp_license', 'xp_shortcuts']).then(data => {
+chrome.storage.local.get([
+  'xp_pro', 'xp_license', 'xp_shortcuts',
+  'xp_invoice_approve_default', 'xp_bill_approve_view_next',
+]).then(data => {
   const isPro = data.xp_pro === true;
   const sc    = Object.assign({}, DEFAULTS, data.xp_shortcuts || {});
 
@@ -90,6 +97,21 @@ chrome.storage.local.get(['xp_pro', 'xp_license', 'xp_shortcuts']).then(data => 
   applyProState(isPro);
   loadShortcuts(sc);
   upgradeLink.href = UPGRADE_URL;
+
+  // プレースホルダもプラットフォームに合わせる（ChromeOS/Windows は Ctrl+K）
+  SC_FIELDS.forEach(id => { $('sc-' + id).placeholder = DEFAULTS[id]; });
+
+  // Behaviour トグル（無料・既定ON）
+  $('toggle-invoice-approve').checked = data.xp_invoice_approve_default !== false;
+  $('toggle-bill-approve').checked    = data.xp_bill_approve_view_next !== false;
+});
+
+// ── Behaviour トグル保存（無料機能・即反映） ──────────────────
+$('toggle-invoice-approve').addEventListener('change', (e) => {
+  chrome.storage.local.set({ xp_invoice_approve_default: e.target.checked });
+});
+$('toggle-bill-approve').addEventListener('change', (e) => {
+  chrome.storage.local.set({ xp_bill_approve_view_next: e.target.checked });
 });
 
 // ── ライセンス認証 ────────────────────────────────────────────
