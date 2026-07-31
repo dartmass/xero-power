@@ -5,14 +5,13 @@
 //   空文字のままなら該当機能は無効（何も起きない）
 // ─────────────────────────────────────────────────────────────
 
-// アンインストール時に開く1問アンケート
-// 例: 'https://docs.google.com/forms/d/e/1FAIpQLSxxxxx/viewform'
-const UNINSTALL_SURVEY_URL = '';
+// アンインストール時に開く1問アンケート（Google Form「Xero Power — Uninstall survey」）
+const UNINSTALL_SURVEY_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLScL5d5JVa3Ua7fETAWnsXZvd5HF_MBTf7Krf9N7t5UAWpTWPw/viewform';
 
-// 任意：フォームの「バージョン」質問の entry ID（例 'entry.123456789'）
-// 設定すると、どのバージョンからアンインストールされたかが自動で埋まる。
-// Google Form の質問を右クリック →「事前入力したURLを取得」で確認できる。
-const UNINSTALL_SURVEY_VERSION_FIELD = '';
+// フォームの「Version (auto-filled)」質問の entry ID。
+// どのバージョンからアンインストールされたかが自動で埋まる。
+const UNINSTALL_SURVEY_VERSION_FIELD = 'entry.16036521';
 
 // ─────────────────────────────────────────────────────────────
 

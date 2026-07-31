@@ -2,11 +2,11 @@
 
 // ユーザーの64%がChromeOS。⌘ キーは存在しないので Ctrl 表記に切り替える。
 // ─────────────────────────────────────────────────────────────
-// 設定：質問・要望を受け取る Google Form の URL
-//   例: 'https://docs.google.com/forms/d/e/1FAIpQLSxxxxx/viewform'
-//   空文字のままなら popup にリンクを表示しない。
+// 質問・要望を受け取る Google Form（「Xero Power — Feedback」）
+//   空文字にすると popup のリンクを丸ごと非表示にできる。
 // ─────────────────────────────────────────────────────────────
-const FEEDBACK_URL = '';
+const FEEDBACK_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLScAk2akomy6-ZQwWrE6E5c2EtFOEp9uSqvg4_us9wspJJVGAw/viewform';
 
 // /i 必須: userAgentData.platform は "macOS"（小文字m）、navigator.platform は "MacIntel"
 const IS_MAC = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '');

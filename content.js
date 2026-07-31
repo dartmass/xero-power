@@ -1,5 +1,5 @@
 /**
- * Xero Power — content.js  v0.7.1
+ * Xero Power — content.js  v0.8.0
  * MVP: Command Palette (⌘K / Ctrl+K)
  *
  * Xero上の任意のページで ⌘K を押すと、
@@ -16,13 +16,15 @@
  *         ②popup/optionsの「⌘K」固定表示をプラットフォーム判定で切替
  *         ③ショートカット変更をstorage.onChangedで即反映(以前はタブ再読込が必要)
  *         ④ユーザー可視テキストを英語化(ユーザーの89%が米国)
+ * v0.8.0: アンインストール時の1問アンケート(background.js) + popupにフィードバック導線。
+ *         プライバシーポリシーを実態(Polar/Google Forms)に合わせて全面改訂。
  */
 (() => {
   "use strict";
 
   // 二重読み込み防止
   if (window.__xeroPower) return;
-  window.__xeroPower = "0.7.1";
+  window.__xeroPower = "0.8.0";
 
   // ─────────────────────────────────────────
   // 1. Xero ページ一覧（コマンドパレットのデータ）
