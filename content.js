@@ -24,9 +24,12 @@
  *           簿記担当の「間違った組織に入力する」事故を防ぐ。無料2組織/Pro無制限。
  *         ②トラッキング必須化(§6.4 / 287票)。事務所のコーディング統一。Pro。
  *         ③ダークモード(§6.8 / 533票)。無料。
- *         ④パレットの「Bank Reconciliation」が機能していなかったのを修正。
- *           /BankRec/BankRec.aspx は accountId 無しだと homepage に飛ばされる。
- *           最後に開いた口座を組織ごとに記憶して直接飛ばす（未知なら口座一覧へ）。
+ *         ④パレット全28件を実Xeroで検証し直し、**15件が死んでいた**のを修正。
+ *           ・レポート7件は reporting.xero.com へ移転（別ホスト）
+ *           ・Quotes/Chart of Accounts/Manual Journals 等は旧.aspxが404
+ *           ・Bank Reconciliation は accountId 無しだと homepage に飛ばされる
+ *           ・New Bill の /app/{orgId}/bills/create は404
+ *           検証済みURLのみに入れ替え、Xeroナビから拾った有用な行き先も追加して39件に。
  */
 (() => {
   "use strict";
@@ -74,13 +77,21 @@
         ? path.replace("{bankAccountId}", encodeURIComponent(acct))
         : "/Bank/BankAccounts.aspx");
     }
-    if (!path.includes("{orgId}")) return "https://go.xero.com" + path;
-    const id = getOrgId();
+    // レポートは reporting.xero.com という別ホスト。絶対URLをそのまま使う。
+    const base = path.startsWith("https://") ? "" : "https://go.xero.com";
+    if (!path.includes("{orgId}")) return base + path;
+    // ocOrgId は旧URL(.aspx)でもDOMから組織IDを拾えるので、こちらを優先する
+    const id = ocOrgId() || getOrgId();
     return id
-      ? "https://go.xero.com" + path.replace("{orgId}", id)
-      : "https://go.xero.com" + path.replace("/{orgId}", ""); // fallback
+      ? base + path.replace("{orgId}", id)
+      : base + path.replace("/{orgId}", ""); // fallback
   }
 
+  // ⚠️ 2026-08-01 全件を実Xeroで検証し直した。
+  //    旧 .aspx URL の多くが廃止されており、28件中15件が404かhomepageに
+  //    飛んでいた（レポート7件は reporting.xero.com という別ホストに移転）。
+  //    ここに載せるのは「Xero自身のナビにあるURL」か「実際に遷移して確認したURL」だけ。
+  //    確認できないものは載せない。死んだリンクを並べるくらいなら件数を減らす。
   const PAGES = [
     // ── Banking ──
     {
@@ -101,7 +112,28 @@
       label: "Bank Rules",
       sub: "Auto-code recurring transactions",
       keys: "bank rules auto code",
-      path: "/Bank/BankRules.aspx",
+      path: "/app/bank-rules",
+      cat: "Banking",
+    },
+    {
+      label: "Bank Statements",
+      sub: "Imported statement lines",
+      keys: "bank statements imported lines",
+      path: "/Bank/Statements.aspx",
+      cat: "Banking",
+    },
+    {
+      label: "Spend Money",
+      sub: "Record a payment out",
+      keys: "spend money payment out",
+      path: "/Banking/Account/",
+      cat: "Banking",
+    },
+    {
+      label: "Transfer Money",
+      sub: "Move money between accounts",
+      keys: "transfer money between accounts",
+      path: "/Bank/Transfer.aspx",
       cat: "Banking",
     },
 
@@ -124,14 +156,35 @@
       label: "Quotes",
       sub: "Quotes and estimates",
       keys: "quotes estimates proposals",
-      path: "/Quotes/Search.aspx",
+      path: "/Accounts/Receivable/Quotes/Search",
       cat: "Sales",
     },
     {
-      label: "Credit Notes (Sales)",
-      sub: "Sales credit notes",
-      keys: "credit note refund sales",
-      path: "/AccountsReceivable/CreditNotes.aspx",
+      label: "New Quote",
+      sub: "Create a new quote",
+      keys: "new quote estimate create",
+      path: "/Accounts/Receivable/Quotes/New",
+      cat: "Sales",
+    },
+    {
+      label: "Sales Overview",
+      sub: "Sales dashboard",
+      keys: "sales overview dashboard",
+      path: "/app/{orgId}/sales-overview",
+      cat: "Sales",
+    },
+    {
+      label: "Customers",
+      sub: "People who owe you money",
+      keys: "customers debtors clients",
+      path: "/app/{orgId}/contacts/customers",
+      cat: "Sales",
+    },
+    {
+      label: "Products and Services",
+      sub: "Your inventory items",
+      keys: "products services inventory items",
+      path: "/Accounts/Inventory",
       cat: "Sales",
     },
 
@@ -147,21 +200,35 @@
       label: "New Bill",
       sub: "Enter a new bill",
       keys: "new bill create purchase",
-      path: "/app/{orgId}/bills/create",
+      path: "/AccountsPayable/Edit.aspx",
       cat: "Purchases",
     },
     {
       label: "Purchase Orders",
       sub: "Purchase orders to suppliers",
       keys: "purchase orders PO",
-      path: "/PurchaseOrders/Search.aspx",
+      path: "/Accounts/Payable/PurchaseOrders/Search",
       cat: "Purchases",
     },
     {
-      label: "Credit Notes (Purchases)",
-      sub: "Supplier credit notes",
-      keys: "credit note purchase supplier",
-      path: "/AccountsPayable/CreditNotes.aspx",
+      label: "New Purchase Order",
+      sub: "Raise a purchase order",
+      keys: "new purchase order PO create",
+      path: "/Accounts/Payable/PurchaseOrders/New",
+      cat: "Purchases",
+    },
+    {
+      label: "Purchases Overview",
+      sub: "Purchases dashboard",
+      keys: "purchases overview dashboard",
+      path: "/Accounts/Payable/Dashboard/",
+      cat: "Purchases",
+    },
+    {
+      label: "Suppliers",
+      sub: "People you owe money to",
+      keys: "suppliers creditors vendors",
+      path: "/app/{orgId}/contacts/suppliers",
       cat: "Purchases",
     },
 
@@ -170,21 +237,28 @@
       label: "Chart of Accounts",
       sub: "Manage account codes",
       keys: "chart of accounts COA account codes",
-      path: "/Accounts/Accounts.aspx",
+      path: "/GeneralLedger/ChartOfAccounts.aspx",
       cat: "Accounting",
     },
     {
       label: "Manual Journals",
       sub: "Post manual journal entries",
       keys: "manual journals journal entries",
-      path: "/Journals/Search.aspx",
+      path: "/Journal/Search.aspx",
+      cat: "Accounting",
+    },
+    {
+      label: "New Manual Journal",
+      sub: "Post a new journal",
+      keys: "new manual journal entry create",
+      path: "/Journal/Edit.aspx",
       cat: "Accounting",
     },
     {
       label: "Find and Recode",
       sub: "Batch recode transactions",
       keys: "find recode batch bulk reclassify",
-      path: "/Accounts/FindAndRecode.aspx",
+      path: "/Accounts/Recoding",
       cat: "Accounting",
     },
     {
@@ -195,61 +269,69 @@
       cat: "Accounting",
     },
     {
-      label: "Accounting Settings",
-      sub: "Financial year, tax settings",
-      keys: "settings accounting financial year",
-      path: "/Settings/AccountsSettings.aspx",
+      label: "History and Notes",
+      sub: "Everything that changed, and who changed it",
+      keys: "history notes audit activity log",
+      path: "/app/{orgId}/activity-summary",
+      cat: "Accounting",
+    },
+    {
+      label: "Assurance Dashboard",
+      sub: "Spot unusual activity",
+      keys: "assurance dashboard audit review",
+      path: "/app/{orgId}/assurance-dashboard",
+      cat: "Accounting",
+    },
+    {
+      label: "Settings",
+      sub: "Organisation settings",
+      keys: "settings organisation preferences",
+      path: "/app/{orgId}/settings",
       cat: "Accounting",
     },
 
     // ── Reports ──
+    // ⚠️ レポートは go.xero.com ではなく reporting.xero.com。絶対URLで持つ。
     {
       label: "Profit & Loss",
       sub: "Income statement",
       keys: "profit loss P&L income statement",
-      path: "/Reports/Report/Index?reportType=ProfitAndLoss",
+      path: "https://reporting.xero.com/{orgId}/v2/Run/New/1016",
       cat: "Reports",
     },
     {
       label: "Balance Sheet",
       sub: "Assets, liabilities, equity",
       keys: "balance sheet assets liabilities equity",
-      path: "/Reports/Report/Index?reportType=BalanceSheet",
-      cat: "Reports",
-    },
-    {
-      label: "Trial Balance",
-      sub: "All account balances",
-      keys: "trial balance",
-      path: "/Reports/Report/Index?reportType=TrialBalance",
+      path: "https://reporting.xero.com/{orgId}/v2/Run/New/1017",
       cat: "Reports",
     },
     {
       label: "Aged Receivables",
       sub: "Who owes you money",
       keys: "aged receivables debtors outstanding",
-      path: "/Reports/Report/Index?reportType=AgedReceivables",
+      path: "https://reporting.xero.com/{orgId}/v2/Run/New/1001",
       cat: "Reports",
     },
     {
       label: "Aged Payables",
       sub: "What you owe suppliers",
       keys: "aged payables creditors outstanding",
-      path: "/Reports/Report/Index?reportType=AgedPayables",
+      path: "https://reporting.xero.com/{orgId}/v2/Run/New/1000",
       cat: "Reports",
     },
     {
-      label: "Cash Summary",
-      sub: "Cash flow overview",
-      keys: "cash summary flow statement",
-      path: "/Reports/Report/Index?reportType=CashSummary",
+      label: "Account Transactions",
+      sub: "Transactions by account",
+      keys: "account transactions general ledger detail",
+      path: "https://reporting.xero.com/{orgId}/v2/Run/New/1009",
       cat: "Reports",
     },
     {
       label: "All Reports",
-      sub: "Browse all reports",
-      keys: "reports all list",
-      path: "/Reports/Report/Index",
+      sub: "Browse every report",
+      keys: "reports all list browse",
+      path: "https://reporting.xero.com/{orgId}",
       cat: "Reports",
     },
 
@@ -281,14 +363,21 @@
       label: "Projects",
       sub: "Track time and costs by project",
       keys: "projects time tracking",
-      path: "/Projects",
+      path: "/app/{orgId}/projects",
       cat: "Navigation",
     },
     {
-      label: "Payroll",
-      sub: "Pay employees",
-      keys: "payroll employees pay runs",
-      path: "/Payroll",
+      label: "Short-term Cash Flow",
+      sub: "Where your cash is heading",
+      keys: "cash flow forecast short term",
+      path: "/app/{orgId}/cashflow",
+      cat: "Navigation",
+    },
+    {
+      label: "Business Snapshot",
+      sub: "Performance at a glance",
+      keys: "business snapshot performance metrics",
+      path: "/app/{orgId}/business-snapshot/",
       cat: "Navigation",
     },
   ];

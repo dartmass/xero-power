@@ -18,7 +18,7 @@ v0.9.0
 ・Dark mode — 533 of you asked Xero for this
 ・Colour-code your organisations — give each one its own nav bar colour so you always know which set of books you are in
 ・Require a tracking category before an invoice can be approved (Pro)
-・Fixed "Bank Reconciliation" in the command palette landing on the dashboard instead of your bank account
+・Rebuilt the command palette against live Xero — 15 of its destinations had gone dead as Xero moved pages, including every report. All 39 are now checked, and there are more of them
 
 v0.8.0
 ・You can now send questions and feature requests straight from the extension popup
@@ -51,7 +51,7 @@ Xero Power adds the keyboard-first workflow that Xero power users have been aski
 
 **Ctrl+K Command Palette**
 
-Press Ctrl+K anywhere in Xero — on Windows, on a Chromebook, or ⌘K on a Mac — to open a searchable list of 28 screens.
+Press Ctrl+K anywhere in Xero — on Windows, on a Chromebook, or ⌘K on a Mac — to open a searchable list of 39 screens.
 
 • Bank Reconciliation → type "rec" → Enter
 • New Invoice → type "inv" → Enter
