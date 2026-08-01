@@ -18,6 +18,7 @@ v0.9.0
 ・Dark mode — 533 of you asked Xero for this
 ・Colour-code your organisations — give each one its own nav bar colour so you always know which set of books you are in
 ・Require a tracking category before an invoice or bill can be approved (Pro)
+・Bills — a new "Approve & next" button walks you through a run of bills without dropping you back on the list every time
 ・Rebuilt the command palette against live Xero — 15 of its destinations had gone dead as Xero moved pages, including every report. All 39 are now checked, and there are more of them
 
 v0.8.0

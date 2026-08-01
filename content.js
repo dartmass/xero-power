@@ -8,7 +8,7 @@
  *
  * v0.5.0: 新インボイスの既定ボタンを「Approve & email」→「Approve」に変更。
  *         Product Ideasで440票・Xeroが実装拒否(2026-01)・競合拡張ゼロのwedge。
- * v0.6.0: Bank Rec に確定ショートカット(↵)を追加。Bills 対応を試作(現在は BA_READY=false で無効)。
+ * v0.6.0: Bank Rec に確定ショートカット(↵)を追加。Bills対応も試作したが方式が誤りでv0.9.0で作り直し。
  *         r/xero ユーザーリクエスト(Logical_Sea2630)を受けて実装。無料機能。
  * v0.7.0: 初回トースト + welcome.html + background.js（オンボーディング）。
  * v0.7.1: ChromeOS対応の修正。ユーザーの64%がChromeOSで ⌘ キーが存在しないため:
@@ -23,6 +23,7 @@
  *         ①組織ごとのナビバー配色(§6.7 / 308票)。複数クライアントを扱う
  *           簿記担当の「間違った組織に入力する」事故を防ぐ。無料2組織/Pro無制限。
  *         ②トラッキング必須化(§6.4 / 287票)。請求書とBillsの両方。事務所のコーディング統一。Pro。
+ *         ⑤Bills「Approve & next」ボタン(§6.6)。Xeroに該当オプションが無いため自前で追加。
  *         ③ダークモード(§6.8 / 533票)。無料。
  *         ④パレット全28件を実Xeroで検証し直し、**15件が死んでいた**のを修正。
  *           ・レポート7件は reporting.xero.com へ移転（別ホスト）
@@ -1335,155 +1336,168 @@
   );
 
   // ─────────────────────────────────────────
-  // 6.6 Bills：「Approve and view next」を既定アクションに
-  //   背景: Draft Billを複数処理するとき、1件ごとに一覧に戻る手間がある。
-  //   「Approve and view next」を既定にすると承認後に次のBillへ自動遷移。
-  //   ユーザーリクエスト(Logical_Sea2630, r/xero 2026-06-30)を受けて実装。
-  //   無料機能。インボイス版(6.5)と同パターン。
+  // 6.6 Bills：「Approve & next」ボタン（無料）
+  //   要望: Logical_Sea2630 (r/xero 2026-06-30)
+  //   「Billを承認したら一覧に戻らず、次のBillへ進みたい」
   //
-  //   ⚠️ BA_READY = false: Bills実DOMのセレクタ未確定のため一時無効化。
-  //   確認後 true に戻す。
+  //   ⚠️ v0.6.0では Xero の ▾ にある「Approve and view next」を既定にする方式で
+  //      実装したが、実機で確認したところ Bills の ▾ の中身は
+  //      「Approve」と「Approve & add another」の2つだけで、
+  //      **「Approve and view next」というオプションは存在しない**。
+  //      既定を差し替える方式では実現不可能だったので、ボタンごと自前で足す方式に変更した。
+  //
+  //   仕組み（実機で確認した事実に基づく）:
+  //     ①Bills一覧の各行が /app/{orgId}/bills/view/bill?id={guid} を持つ
+  //       → 表示順のキューが作れる
+  //     ②Bill編集画面は /AccountsPayable/Edit.aspx?InvoiceID={guid}
+  //     ③承認は a.words「Approve」を代理クリックすればよい
+  //
+  //   承認後にXeroがどこへ着地するかは意図的に前提にしていない。
+  //   「次のID」を先に控えておき、遷移後にそこへ飛ぶ作りなので、
+  //   Xero側の着地先が変わっても壊れない。
   // ─────────────────────────────────────────
-  const BA_READY = false; // TODO: Bills DOM確認後に true に戻す
-  let baEnabled = true; // xp_bill_approve_view_next（既定ON・無料）
+  let baEnabled = true;   // xp_bill_approve_view_next（既定ON・無料）
+  let baQueue   = null;   // { org, ids: [...] }
 
   if (chrome?.storage?.local) {
-    chrome.storage.local.get(["xp_bill_approve_view_next"]).then((d) => {
+    chrome.storage.local.get(["xp_bill_approve_view_next", "xp_bill_queue"]).then((d) => {
       baEnabled = d.xp_bill_approve_view_next !== false;
-      if (baEnabled && isBillPage()) baApply();
-      else if (!baEnabled) baRestore();
+      baQueue   = d.xp_bill_queue || null;
+      baBoot();
     }).catch(() => {});
 
-    chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== "local" || !changes.xp_bill_approve_view_next) return;
-      baEnabled = changes.xp_bill_approve_view_next.newValue !== false;
-      if (baEnabled && isBillPage()) baApply();
-      else baRestore();
+    chrome.storage.onChanged.addListener((c, area) => {
+      if (area !== "local") return;
+      if (c.xp_bill_approve_view_next) {
+        baEnabled = c.xp_bill_approve_view_next.newValue !== false;
+        if (!baEnabled) document.getElementById("xp-ba-next")?.remove();
+        else baBoot();
+      }
+      if (c.xp_bill_queue) baQueue = c.xp_bill_queue.newValue || null;
     });
   }
 
-  function isBillPage() {
-    const path = location.pathname.toLowerCase();
-    return path.includes("/bills/") &&
-           !path.includes("/bills/list") &&
-           !path.includes("/bills/create");
+  function baOrg() { return ocOrgId(); }
+
+  // ── ①一覧ページ: 表示順のBill IDをキューとして保存 ──
+  function baIsListPage() {
+    return /\/bills\/list\//i.test(location.pathname);
   }
 
-  function baNorm(s) {
-    return (s || "").replace(/\s+/g, " ").trim().toLowerCase();
+  function baCaptureQueue() {
+    const ids = [];
+    document.querySelectorAll('a[href*="/bills/view/bill"]').forEach((a) => {
+      let id;
+      try { id = new URL(a.href, location.origin).searchParams.get("id"); } catch { return; }
+      if (id && !ids.includes(id)) ids.push(id);
+    });
+    if (!ids.length) return;
+    baQueue = { org: baOrg(), ids };
+    chrome.storage?.local?.set({ xp_bill_queue: baQueue });
   }
 
-  // 主ボタン（Approve）をテキスト一致で特定
-  function baFindPrimary() {
-    return [...document.querySelectorAll("button")].find((b) => {
-      const t = baNorm(b.textContent);
-      return t === "approve";
-    }) || null;
+  // ── ②編集ページ: 自前ボタンを足す ──
+  function baIsEditPage() {
+    return /accountspayable\/edit/i.test(location.pathname);
   }
 
-  // ▾ドロップダウンボタンを特定（インボイス版と同じロジック）
-  function baFindCaret(primary) {
-    if (!primary) return null;
-    let scope = primary.parentElement;
-    for (let i = 0; i < 3 && scope; i++, scope = scope.parentElement) {
-      const caret = [...scope.querySelectorAll("button")].find(
-        (b) =>
-          b !== primary &&
-          (b.getAttribute("aria-haspopup") ||
-            b.hasAttribute("aria-expanded") ||
-            /more|option|approve/i.test(b.getAttribute("aria-label") || ""))
-      );
-      if (caret) return caret;
-    }
+  function baCurrentId() {
+    // View.aspx は invoiceID、Edit.aspx は InvoiceID と大小が揺れるので総当たり
+    const q = new URLSearchParams(location.search);
+    for (const [k, v] of q) if (/^invoiceid$/i.test(k)) return v;
     return null;
   }
 
-  function baSetLabel(btn, text) {
-    const tnode = [...btn.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
-    if (tnode) { tnode.textContent = text; return; }
-    const el = [...btn.querySelectorAll("*")].reverse().find((e) => e.children.length === 0 && e.textContent.trim());
-    if (el) { el.textContent = text; return; }
-    btn.textContent = text;
+  function baNextId() {
+    const cur = baCurrentId();
+    if (!cur || !baQueue || baQueue.org !== baOrg()) return null;
+    const i = baQueue.ids.indexOf(cur);
+    if (i < 0 || i + 1 >= baQueue.ids.length) return null;
+    return baQueue.ids[i + 1];
   }
 
-  function baApply() {
-    if (!BA_READY || !baEnabled) return;
-    const primary = baFindPrimary();
-    if (!primary) return;
-    const caret = baFindCaret(primary);
-    if (!caret) return; // ▾がなければ触らない
-    if (primary.dataset.xpBillApprove === "1") return;
-    primary.dataset.xpOrigLabel = primary.textContent.trim();
-    baSetLabel(primary, "Approve and view next");
-    primary.dataset.xpBillApprove = "1";
-    primary.title = "Approve and view next — Xero Power. Use ▾ for other approve options.";
-    console.log("%c[Xero Power] Bills: default set to Approve and view next ✅", "color:#0a7a4b;font-weight:bold");
+  function baApproveLink() {
+    return [...document.querySelectorAll("a")]
+      .find((a) => a.offsetParent && (a.textContent || "").trim() === "Approve") || null;
   }
 
-  function baRestore() {
-    const primary = document.querySelector('button[data-xp-bill-approve="1"]');
-    if (!primary) return;
-    if (primary.dataset.xpOrigLabel) baSetLabel(primary, primary.dataset.xpOrigLabel);
-    delete primary.dataset.xpBillApprove;
-    primary.title = "";
+  function baEditUrl(id) {
+    return "https://go.xero.com/AccountsPayable/Edit.aspx?InvoiceID=" + encodeURIComponent(id);
   }
 
-  // 「Approve and view next」項目か判定
-  function baIsApproveViewNext(el, self) {
-    if (el === self) return false;
-    const t = baNorm(el.textContent);
-    return t.startsWith("approve and view") || t.startsWith("approve & view");
+  function baInjectButton() {
+    if (!baEnabled || document.getElementById("xp-ba-next")) return;
+    const approve = baApproveLink();
+    if (!approve) return;
+    const next = baNextId();
+    if (!next) return;              // 一覧を経由していない／最後の1件なら出さない
+
+    const btn = document.createElement("button");
+    btn.id = "xp-ba-next";
+    btn.type = "button";
+    btn.textContent = "Approve & next";
+    btn.title = "Approve this bill, then open the next one from the list (Xero Power)";
+    // ⚠️ このフッターは全て float で組まれている。素直に挿すと Approve に重なり、
+    //    押し間違いが起きる（実機で確認済み）。float:right を付けて
+    //    #approveBttn の直後に挿すと Approve の左隣に収まる。
+    btn.style.cssText = [
+      "float:right", "margin:0 8px 0 0", "padding:5px 14px", "border-radius:4px",
+      "border:1px solid #0a7a4b", "background:#0a7a4b", "color:#fff",
+      "font:13px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      "cursor:pointer",
+    ].join(";");
+
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      // 先に「次」を控える。ページ遷移後にこれを見て飛ぶ。
+      await chrome.storage?.local?.set({
+        xp_bill_pending: { org: baOrg(), approving: baCurrentId(), next },
+      });
+      // 本物の Approve を叩く。トラッキング必須化(§6.4)が止めた場合は
+      // dispatchEvent が false を返すので、控えを取り消す。
+      const ok = approve.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true })
+      );
+      if (!ok) chrome.storage?.local?.remove("xp_bill_pending");
+    });
+
+    const group = approve.closest("#approveBttn") || approve.closest(".float-right") || approve.parentElement;
+    group.insertAdjacentElement("afterend", btn);
   }
 
-  function baRunApprove(primary) {
-    const caret = baFindCaret(primary);
-    if (!caret) return;
-    caret.click();
-    baWaitApprove(0);
+  // ── ③遷移後: 控えていた「次」へ飛ぶ ──
+  function baFollowPending() {
+    if (!chrome?.storage?.local) return;
+    chrome.storage.local.get(["xp_bill_pending"]).then((d) => {
+      const p = d.xp_bill_pending;
+      if (!p) return;
+
+      // まだ同じBillの編集画面にいる = 承認が通っていない（検証で止められた等）。
+      // 勝手に次へ飛ばすと入力が失われるので、控えを捨てて何もしない。
+      if (baIsEditPage() && baCurrentId() === p.approving) {
+        chrome.storage.local.remove("xp_bill_pending");
+        return;
+      }
+      chrome.storage.local.remove("xp_bill_pending");
+      if (p.next && p.org === baOrg()) location.href = baEditUrl(p.next);
+    }).catch(() => {});
   }
 
-  function baWaitApprove(attempt) {
-    const self = document.querySelector('button[data-xp-bill-approve="1"]');
-    const item =
-      [...document.querySelectorAll('[role="option"],[role="menuitem"]')].find((el) => baIsApproveViewNext(el, self)) ||
-      [...document.querySelectorAll("button,a")].find((el) => baIsApproveViewNext(el, self));
-    if (item) { item.click(); return; }
-    if (attempt < 8) { setTimeout(() => baWaitApprove(attempt + 1), 60); return; }
-    console.warn("[Xero Power] 'Approve and view next' not found — falling back to manual selection.");
+  function baBoot() {
+    if (baIsListPage()) baCaptureQueue();
+    if (baIsEditPage()) baInjectButton();
   }
 
+  // 一覧も編集画面も後から描画されるのでObserverで拾う（debounce）
   let baPending = false;
   const baObserver = new MutationObserver(() => {
     if (baPending) return;
     baPending = true;
-    requestAnimationFrame(() => {
-      baPending = false;
-      if (baEnabled && isBillPage()) baApply();
-    });
+    requestAnimationFrame(() => { baPending = false; if (baEnabled) baBoot(); });
   });
+  if (document.body) baObserver.observe(document.body, { childList: true, subtree: true });
 
-  function baStart() {
-    if (document.body) baObserver.observe(document.body, { childList: true, subtree: true });
-    baApply();
-  }
-  function baStop() {
-    baObserver.disconnect();
-    baRestore();
-  }
-
-  // Bills クリック乗っ取り
-  window.addEventListener(
-    "click",
-    (e) => {
-      if (!baEnabled) return;
-      const btn = e.target.closest?.('button[data-xp-bill-approve="1"]');
-      if (!btn) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      baRunApprove(btn);
-    },
-    true
-  );
+  baFollowPending();
 
   // ─────────────────────────────────────────
   // 6.7 組織ごとのナビバー配色
@@ -1690,9 +1704,8 @@
     if (path.includes("invoicing")) iaStart();
     else iaStop();
 
-    // Bills：Approve and view next 既定機能
-    if (isBillPage()) baStart();
-    else baStop();
+    // Bills：Approve & next（一覧のキュー取得＋ボタン注入）
+    baBoot();
 
     // 組織カラー（全ページ共通）
     ocApply();

@@ -254,11 +254,14 @@
         </label>
       </div>
 
-      <!-- Bills toggle: 一時非表示（Bills DOM確認後に復活） -->
-      <div class="toggle-row" style="display:none">
+      <div class="toggle-row">
         <div>
-          <div class="toggle-label">Bills — default to Approve and view next</div>
-          <div class="toggle-desc">Moves to the next draft bill after approving, speeding up bulk processing.</div>
+          <div class="toggle-label">Bills — show an "Approve &amp; next" button</div>
+          <div class="toggle-desc">
+            Adds a button that approves the bill and opens the next one from the list you came
+            from, so a run of bills does not send you back to the list every time.
+            Open a bills list first — that is where the order comes from.
+          </div>
         </div>
         <label class="toggle-switch">
           <input type="checkbox" id="toggle-bill-approve" checked>
