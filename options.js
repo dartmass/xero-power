@@ -37,6 +37,105 @@ const saveMsg       = $('save-msg');
 
 const SC_FIELDS = ['palette', 'match', 'create', 'transfer', 'discuss'];
 
+// ── 組織カラー ────────────────────────────────────────────────
+// content.js の OC_PALETTE と揃えること
+const ORG_PALETTE = [
+  { label: 'Slate',  hex: '#334155' },
+  { label: 'Red',    hex: '#b91c1c' },
+  { label: 'Orange', hex: '#c2410c' },
+  { label: 'Olive',  hex: '#4d7c0f' },
+  { label: 'Green',  hex: '#15803d' },
+  { label: 'Teal',   hex: '#0f766e' },
+  { label: 'Indigo', hex: '#4338ca' },
+  { label: 'Plum',   hex: '#a21caf' },
+];
+const ORG_FREE_LIMIT = 2;   // content.js の OC_FREE_LIMIT と揃えること
+
+let orgColors = {};
+let orgIsPro  = false;
+
+function orgColoredIds() {
+  return Object.keys(orgColors).filter(id => orgColors[id]?.color);
+}
+
+function renderOrgs() {
+  const list  = $('org-list');
+  const empty = $('org-empty');
+  const limit = $('org-limit');
+  const ids   = Object.keys(orgColors);
+
+  empty.style.display = ids.length ? 'none' : 'block';
+  list.innerHTML = '';
+
+  const colored = orgColoredIds();
+  const atLimit = !orgIsPro && colored.length >= ORG_FREE_LIMIT;
+
+  ids.forEach(id => {
+    const org = orgColors[id];
+    // 無料枠を使い切っていて、かつこの組織がまだ未着色なら選べない
+    const locked = atLimit && !org.color;
+
+    const row = document.createElement('div');
+    row.className = 'org-row';
+
+    const left = document.createElement('div');
+    left.innerHTML =
+      `<div class="org-name"></div><div class="org-id"></div>`;
+    left.querySelector('.org-name').textContent = org.name || id;
+    left.querySelector('.org-id').textContent   = id;
+
+    const sw = document.createElement('div');
+    sw.className = 'org-swatches';
+
+    const none = document.createElement('button');
+    none.className = 'swatch swatch-none';
+    none.textContent = '✕';
+    none.title = 'No colour';
+    none.setAttribute('aria-pressed', String(!org.color));
+    none.addEventListener('click', () => setOrgColor(id, null));
+    sw.appendChild(none);
+
+    ORG_PALETTE.forEach(p => {
+      const b = document.createElement('button');
+      b.className = 'swatch';
+      b.style.backgroundColor = p.hex;
+      b.title = p.label;
+      b.disabled = locked;
+      b.setAttribute('aria-pressed', String(org.color === p.hex));
+      b.addEventListener('click', () => setOrgColor(id, p.hex));
+      sw.appendChild(b);
+    });
+
+    row.appendChild(left);
+    row.appendChild(sw);
+    list.appendChild(row);
+  });
+
+  if (atLimit) {
+    limit.style.display = 'block';
+    limit.innerHTML =
+      `Free covers ${ORG_FREE_LIMIT} organisations. ` +
+      `<a href="${UPGRADE_URL}" target="_blank">Go Pro</a> to colour all of them.`;
+  } else {
+    limit.style.display = 'none';
+  }
+}
+
+function setOrgColor(id, hex) {
+  if (!orgColors[id]) return;
+  orgColors[id].color = hex;
+  chrome.storage.local.set({ xp_org_colors: orgColors }).then(renderOrgs);
+}
+
+// Xeroタブで新しい組織を開いたら一覧に反映する
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  if (changes.xp_org_colors) {
+    orgColors = changes.xp_org_colors.newValue || {};
+    renderOrgs();
+  }
+});
+
 // ── Polar ライセンス検証 ──────────────────────────────────────
 async function validateLicense(key) {
   // Polar が未設定の場合はスキップ（開発中）
@@ -76,6 +175,10 @@ function applyProState(isPro) {
   });
   saveBtn.disabled  = !isPro;
   resetBtn.disabled = !isPro;
+
+  // Pro の切り替えで組織カラーの無料枠表示も変わる
+  orgIsPro = isPro;
+  renderOrgs();
 }
 
 // ── UI: ショートカット値をフィールドに反映 ────────────────────
@@ -89,9 +192,14 @@ function loadShortcuts(sc) {
 chrome.storage.local.get([
   'xp_pro', 'xp_license', 'xp_shortcuts',
   'xp_invoice_approve_default', 'xp_bill_approve_view_next',
+  'xp_org_colors',
 ]).then(data => {
   const isPro = data.xp_pro === true;
   const sc    = Object.assign({}, DEFAULTS, data.xp_shortcuts || {});
+
+  orgColors = data.xp_org_colors || {};
+  orgIsPro  = isPro;
+  renderOrgs();
 
   if (data.xp_license) licenseInput.value = data.xp_license;
   applyProState(isPro);

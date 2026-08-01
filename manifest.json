@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Xero Power — Shortcuts & Command Palette",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Keyboard-first power tools for Xero. Ctrl+K command palette, bank rec shortcuts, default-to-Approve for invoices, and more.",
   "icons": {
     "16":  "icons/icon16.png",

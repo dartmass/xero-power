@@ -1,5 +1,5 @@
 /**
- * Xero Power — content.js  v0.8.0
+ * Xero Power — content.js  v0.9.0
  * MVP: Command Palette (⌘K / Ctrl+K)
  *
  * Xero上の任意のページで ⌘K を押すと、
@@ -18,13 +18,18 @@
  *         ④ユーザー可視テキストを英語化(ユーザーの89%が米国)
  * v0.8.0: アンインストール時の1問アンケート(background.js) + popupにフィードバック導線。
  *         プライバシーポリシーを実態(Polar/Google Forms)に合わせて全面改訂。
+ * v0.9.0: ①組織ごとのナビバー配色(§6.7)。複数クライアントを扱う簿記担当の
+ *           「間違った組織に入力する」事故を防ぐ。無料2組織/Pro無制限。
+ *         ②パレットの「Bank Reconciliation」が機能していなかったのを修正。
+ *           /BankRec/BankRec.aspx は accountId 無しだと homepage に飛ばされる。
+ *           最後に開いた口座を組織ごとに記憶して直接飛ばす（未知なら口座一覧へ）。
  */
 (() => {
   "use strict";
 
   // 二重読み込み防止
   if (window.__xeroPower) return;
-  window.__xeroPower = "0.8.0";
+  window.__xeroPower = "0.9.0";
 
   // ─────────────────────────────────────────
   // 1. Xero ページ一覧（コマンドパレットのデータ）
@@ -38,7 +43,33 @@
     return m ? m[1] : null;
   }
 
+  // Bank Rec は accountId が無いと homepage にリダイレクトされる（実機確認済み）。
+  // 最後に開いた口座を覚えておき、パレットからは直接その口座の照合画面へ飛ばす。
+  // ⚠️ accountId は組織ごとに異なるので、必ず組織IDをキーにすること。
+  //    使い回すと別組織の照合画面に飛ぶ事故になる。
+  let brAccounts = {};   // { [orgId]: accountId }
+
+  chrome.storage?.local?.get(["xp_bank_accounts"])
+    .then((d) => { brAccounts = d.xp_bank_accounts || {}; })
+    .catch(() => {});
+
+  // Bank Rec を開いたら、その口座を現在の組織に紐づけて記憶する
+  function brRememberAccount() {
+    const acct = new URLSearchParams(location.search).get("accountId");
+    const org  = ocOrgId();
+    if (!acct || !org || brAccounts[org] === acct) return;
+    brAccounts[org] = acct;
+    chrome.storage?.local?.set({ xp_bank_accounts: brAccounts });
+  }
+
   function buildUrl(path) {
+    if (path.includes("{bankAccountId}")) {
+      const acct = brAccounts[ocOrgId()];
+      // 未知なら口座一覧へ。そこから1クリックで照合に入れる。
+      return "https://go.xero.com" + (acct
+        ? path.replace("{bankAccountId}", encodeURIComponent(acct))
+        : "/Bank/BankAccounts.aspx");
+    }
     if (!path.includes("{orgId}")) return "https://go.xero.com" + path;
     const id = getOrgId();
     return id
@@ -52,7 +83,7 @@
       label: "Bank Reconciliation",
       sub: "Match transactions from your bank",
       keys: "bank reconcile reconciliation match",
-      path: "/BankRec/BankRec.aspx",
+      path: "/BankRec/BankRec.aspx?accountId={bankAccountId}",
       cat: "Banking",
     },
     {
@@ -1176,6 +1207,132 @@
   );
 
   // ─────────────────────────────────────────
+  // 6.7 組織ごとのナビバー配色
+  //   背景: 複数クライアントを持つ簿記担当は組織を切り替えながら作業するため、
+  //   「間違った組織に入力する」事故が起きる。組織ごとにナビの色を変えれば
+  //   目に入った瞬間に気づける。
+  //
+  //   実Xero(2026-08-01 Demo Company)でライブ確認済み:
+  //     ナビバー = nav#wac-top-panel（全幅・高さ64px・IDが安定）
+  //     組織名   = .x-nav--tenant-menu-button-text
+  //     組織ID   = 新URL /app/!xxxxx/... のパス、旧URL(.aspx)はDOM内の
+  //                /app/!xxxxx/ リンクから拾う（両方でライブ確認済み）
+  // ─────────────────────────────────────────
+
+  // ナビの文字色が白なので、白文字が読める濃さの色だけを用意する
+  const OC_PALETTE = [
+    { id: "slate",  label: "Slate",  hex: "#334155" },
+    { id: "red",    label: "Red",    hex: "#b91c1c" },
+    { id: "orange", label: "Orange", hex: "#c2410c" },
+    { id: "olive",  label: "Olive",  hex: "#4d7c0f" },
+    { id: "green",  label: "Green",  hex: "#15803d" },
+    { id: "teal",   label: "Teal",   hex: "#0f766e" },
+    { id: "indigo", label: "Indigo", hex: "#4338ca" },
+    { id: "plum",   label: "Plum",   hex: "#a21caf" },
+  ];
+
+  // 無料で色を割り当てられる組織数。Proなら無制限。
+  const OC_FREE_LIMIT = 2;
+
+  let ocOrgs  = {};    // { [orgId]: { name, color } }
+  let ocIsPro = false;
+
+  function ocOrgId() {
+    // ① 新URL形式: /app/!xxxxx/...
+    //    orgIdは必ず "!" 始まり。付けないと /app/onboarding-ui のような
+    //    ルート名を組織IDと誤認する。
+    const m = location.pathname.match(/^\/app\/(![^/]+)/);
+    if (m) return m[1];
+    // ② 旧URL形式(.aspx): パスに無いのでDOM内のリンクから拾う
+    const a = document.querySelector('a[href*="/app/!"]');
+    const m2 = a && a.getAttribute("href").match(/\/app\/(![A-Za-z0-9_-]+)/);
+    return m2 ? m2[1] : null;
+  }
+
+  function ocOrgName() {
+    return document.querySelector(".x-nav--tenant-menu-button-text")?.textContent.trim() || null;
+  }
+
+  // 色を適用してよい組織か（無料枠の判定）
+  function ocAllowed(orgId) {
+    if (ocIsPro) return true;
+    const colored = Object.keys(ocOrgs).filter((id) => ocOrgs[id]?.color);
+    return colored.indexOf(orgId) > -1 && colored.indexOf(orgId) < OC_FREE_LIMIT;
+  }
+
+  function ocPaint(hex) {
+    const nav = document.getElementById("wac-top-panel");
+    if (nav) {
+      if (nav.dataset.xpOrigBg === undefined) {
+        nav.dataset.xpOrigBg = nav.style.backgroundColor || "";
+      }
+      nav.style.setProperty("background-color", hex, "important");
+      document.getElementById("xp-org-strip")?.remove();
+      return;
+    }
+    // ナビが見つからない場合の保険: 画面最上部に細い帯を出す
+    let strip = document.getElementById("xp-org-strip");
+    if (!strip) {
+      strip = document.createElement("div");
+      strip.id = "xp-org-strip";
+      strip.style.cssText =
+        "position:fixed;top:0;left:0;right:0;height:5px;z-index:2147483647;pointer-events:none";
+      document.documentElement.appendChild(strip);
+    }
+    strip.style.backgroundColor = hex;
+  }
+
+  function ocClear() {
+    const nav = document.getElementById("wac-top-panel");
+    if (nav && nav.dataset.xpOrigBg !== undefined) {
+      nav.style.backgroundColor = nav.dataset.xpOrigBg;
+      delete nav.dataset.xpOrigBg;
+    }
+    document.getElementById("xp-org-strip")?.remove();
+  }
+
+  function ocApply() {
+    const id = ocOrgId();
+    if (!id) return;                       // 組織を判定できないページでは何もしない
+
+    // 初訪問の組織は色なしで登録（optionsの一覧に出すため）
+    const name = ocOrgName();
+    const known = ocOrgs[id];
+    if (!known || (name && known.name !== name)) {
+      ocOrgs[id] = { name: name || known?.name || id, color: known?.color || null };
+      chrome.storage?.local?.set({ xp_org_colors: ocOrgs });
+    }
+
+    const color = ocOrgs[id]?.color;
+    if (color && ocAllowed(id)) ocPaint(color);
+    else ocClear();
+  }
+
+  if (chrome?.storage?.local) {
+    chrome.storage.local.get(["xp_org_colors", "xp_pro"]).then((d) => {
+      ocOrgs  = d.xp_org_colors || {};
+      ocIsPro = d.xp_pro === true;
+      ocApply();
+    }).catch(() => {});
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "local") return;
+      if (changes.xp_org_colors) ocOrgs  = changes.xp_org_colors.newValue || {};
+      if (changes.xp_pro)        ocIsPro = changes.xp_pro.newValue === true;
+      if (changes.xp_org_colors || changes.xp_pro) ocApply();
+    });
+  }
+
+  // Xeroのナビは再描画で色が飛ぶので貼り直す（debounce）
+  let ocPending = false;
+  const ocObserver = new MutationObserver(() => {
+    if (ocPending) return;
+    ocPending = true;
+    requestAnimationFrame(() => { ocPending = false; ocApply(); });
+  });
+  if (document.body) ocObserver.observe(document.body, { childList: true, subtree: true });
+
+  // ─────────────────────────────────────────
   // 7. ページ別機能の起動 / 終了
   // ─────────────────────────────────────────
   function bootFeatures() {
@@ -1183,6 +1340,7 @@
     const path = location.pathname.toLowerCase();
 
     if (path.includes("bankrec")) {
+      brRememberAccount();
       // DOMの準備を待ってから初期化
       const tryInit = (attempts = 0) => {
         if (document.getElementById("ItemsToReconcile")) {
@@ -1203,6 +1361,9 @@
     // Bills：Approve and view next 既定機能
     if (isBillPage()) baStart();
     else baStop();
+
+    // 組織カラー（全ページ共通）
+    ocApply();
   }
 
   // ─────────────────────────────────────────
