@@ -197,6 +197,7 @@
     <div class="upsell" id="upsell-box">
       <div class="upsell-title">Upgrade to Xero Power Pro</div>
       <ul class="upsell-list">
+        <li>Require a tracking category before anyone can approve</li>
         <li>A nav colour for every organisation, not just two</li>
         <li>Custom keyboard shortcuts — remap any key</li>
         <li>Priority support</li>
@@ -218,6 +219,39 @@
         </div>
         <label class="toggle-switch">
           <input type="checkbox" id="toggle-invoice-approve" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Dark mode</div>
+          <div class="toggle-desc">Darkens every Xero screen. Xero has no plans to add this — 533 people asked.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-dark-mode">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">
+            Require a tracking category on every line
+            <span class="pro-lock" id="tracking-pro-lock">🔒 Pro</span>
+          </div>
+          <div class="toggle-desc">
+            Blocks <strong>Approve</strong> on an invoice until every line has a tracking category.
+            Drafts still save, so nobody loses work in progress.
+            <br>
+            <span style="color:#92400e">This is a guardrail, not a control — anyone who turns the
+            extension off can approve without it.</span>
+            <br>
+            Applies to invoices. Bills are not covered yet.
+          </div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-require-tracking">
           <span class="toggle-slider"></span>
         </label>
       </div>

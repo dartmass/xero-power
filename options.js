@@ -176,6 +176,15 @@ function applyProState(isPro) {
   saveBtn.disabled  = !isPro;
   resetBtn.disabled = !isPro;
 
+  // トラッキング必須化は Pro 限定
+  const tk = $('toggle-require-tracking');
+  if (tk) {
+    tk.disabled = !isPro;
+    tk.closest('.toggle-row').style.opacity = isPro ? '1' : '.55';
+  }
+  const tkLock = $('tracking-pro-lock');
+  if (tkLock) tkLock.style.display = isPro ? 'none' : 'inline';
+
   // Pro の切り替えで組織カラーの無料枠表示も変わる
   orgIsPro = isPro;
   renderOrgs();
@@ -192,7 +201,7 @@ function loadShortcuts(sc) {
 chrome.storage.local.get([
   'xp_pro', 'xp_license', 'xp_shortcuts',
   'xp_invoice_approve_default', 'xp_bill_approve_view_next',
-  'xp_org_colors',
+  'xp_org_colors', 'xp_dark_mode', 'xp_require_tracking',
 ]).then(data => {
   const isPro = data.xp_pro === true;
   const sc    = Object.assign({}, DEFAULTS, data.xp_shortcuts || {});
@@ -212,6 +221,12 @@ chrome.storage.local.get([
   // Behaviour トグル（無料・既定ON）
   $('toggle-invoice-approve').checked = data.xp_invoice_approve_default !== false;
   $('toggle-bill-approve').checked    = data.xp_bill_approve_view_next !== false;
+
+  // ダークモード（無料・既定OFF）
+  $('toggle-dark-mode').checked = data.xp_dark_mode === true;
+
+  // トラッキング必須化（Pro・既定OFF）
+  $('toggle-require-tracking').checked = data.xp_require_tracking === true;
 });
 
 // ── Behaviour トグル保存（無料機能・即反映） ──────────────────
@@ -220,6 +235,12 @@ $('toggle-invoice-approve').addEventListener('change', (e) => {
 });
 $('toggle-bill-approve').addEventListener('change', (e) => {
   chrome.storage.local.set({ xp_bill_approve_view_next: e.target.checked });
+});
+$('toggle-dark-mode').addEventListener('change', (e) => {
+  chrome.storage.local.set({ xp_dark_mode: e.target.checked });
+});
+$('toggle-require-tracking').addEventListener('change', (e) => {
+  chrome.storage.local.set({ xp_require_tracking: e.target.checked });
 });
 
 // ── ライセンス認証 ────────────────────────────────────────────

@@ -18,9 +18,13 @@
  *         ④ユーザー可視テキストを英語化(ユーザーの89%が米国)
  * v0.8.0: アンインストール時の1問アンケート(background.js) + popupにフィードバック導線。
  *         プライバシーポリシーを実態(Polar/Google Forms)に合わせて全面改訂。
- * v0.9.0: ①組織ごとのナビバー配色(§6.7)。複数クライアントを扱う簿記担当の
- *           「間違った組織に入力する」事故を防ぐ。無料2組織/Pro無制限。
- *         ②パレットの「Bank Reconciliation」が機能していなかったのを修正。
+ * v0.9.0: Xero Product Ideas の「Xeroが開発予定なしと明言」131件から、
+ *         拡張機能で解けるものを実装するシリーズ。
+ *         ①組織ごとのナビバー配色(§6.7 / 308票)。複数クライアントを扱う
+ *           簿記担当の「間違った組織に入力する」事故を防ぐ。無料2組織/Pro無制限。
+ *         ②トラッキング必須化(§6.4 / 287票)。事務所のコーディング統一。Pro。
+ *         ③ダークモード(§6.8 / 533票)。無料。
+ *         ④パレットの「Bank Reconciliation」が機能していなかったのを修正。
  *           /BankRec/BankRec.aspx は accountId 無しだと homepage に飛ばされる。
  *           最後に開いた口座を組織ごとに記憶して直接飛ばす（未知なら口座一覧へ）。
  */
@@ -893,6 +897,140 @@
   );
 
   // ─────────────────────────────────────────
+  // 6.4 トラッキング必須化（Pro）
+  //   背景: Xero Product Ideas で287票、Xeroは「開発予定なし」と明言。
+  //   事務所では担当者ごとにコーディングがバラつくのが決算時の手戻りになる。
+  //   トラッキング未入力の行があるまま Approve できないようにする。
+  //
+  //   ⚠️ これは「ガードレール」であって統制ではない。拡張を切れば回避できる。
+  //      設定画面にもその旨を明記すること。
+  //
+  //   実Xero(2026-08-01 Demo Company)でライブ確認済み:
+  //     行      = tbody tr
+  //     入力欄  = [data-automationid*="tracking-"][data-automationid$="--search-field--input"]
+  //     ※ 列名は組織が付けた名前（例 "Region"）だが automationid は tracking-0 固定。
+  //        名前に依存しないのでどの組織でも効く。
+  //     承認    = [data-automationid^="ApproveAndEmailButton"]
+  //
+  //   Bills(AccountsPayable/Edit.aspx)は ExtJS グリッドで行ごとのinputが存在せず、
+  //   値は保存時に LineItemsToSaveJSON へまとめて書き出される。取りこぼす検証は
+  //   無いより危険なので対象外。対応するなら別途しっかり作ること。
+  // ─────────────────────────────────────────
+  const TK_ROW  = "tbody tr";
+  const TK_INPUT = '[data-automationid*="tracking-"][data-automationid$="--search-field--input"]';
+
+  let tkEnabled = false;  // xp_require_tracking（既定OFF・Pro）
+  let tkPro     = false;
+
+  if (chrome?.storage?.local) {
+    chrome.storage.local.get(["xp_require_tracking", "xp_pro"]).then((d) => {
+      tkEnabled = d.xp_require_tracking === true;
+      tkPro     = d.xp_pro === true;
+    }).catch(() => {});
+
+    chrome.storage.onChanged.addListener((c, area) => {
+      if (area !== "local") return;
+      if (c.xp_require_tracking) tkEnabled = c.xp_require_tracking.newValue === true;
+      if (c.xp_pro)              tkPro     = c.xp_pro.newValue === true;
+      if (!tkEnabled || !tkPro) tkClearMarks();
+    });
+  }
+
+  function tkVal(el) { return el ? (el.value || "").trim() : ""; }
+
+  // 空行は検証しない。何か入力がある行だけが対象。
+  function tkRowHasContent(tr) {
+    const sels = [
+      '[data-automationid*="description"] input',
+      '[data-automationid*="description"] textarea',
+      '[data-automationid*="quantity"] input',
+      '[data-automationid*="unitAmount"] input',
+      '[data-automationid*="account"][data-automationid$="--search-field--input"]',
+    ];
+    return sels.some((s) => tkVal(tr.querySelector(s)) !== "");
+  }
+
+  // トラッキング未入力の行を返す
+  function tkMissingRows() {
+    return [...document.querySelectorAll(TK_ROW)].filter((tr) => {
+      if (!tkRowHasContent(tr)) return false;
+      const inputs = [...tr.querySelectorAll(TK_INPUT)];
+      if (!inputs.length) return false;   // トラッキング未設定の組織では何もしない
+      return inputs.some((i) => tkVal(i) === "");
+    });
+  }
+
+  function tkClearMarks() {
+    document.querySelectorAll("[data-xp-tk-mark]").forEach((el) => {
+      el.style.outline = "";
+      el.style.borderRadius = "";
+      delete el.dataset.xpTkMark;
+    });
+    document.getElementById("xp-tk-warning")?.remove();
+  }
+
+  function tkMark(rows) {
+    tkClearMarks();
+    rows.forEach((tr) => {
+      tr.querySelectorAll(TK_INPUT).forEach((i) => {
+        if (tkVal(i) !== "") return;
+        const cell = i.closest("td") || i;
+        cell.style.outline = "2px solid #dc2626";
+        cell.style.borderRadius = "3px";
+        cell.dataset.xpTkMark = "1";
+      });
+    });
+
+    const bar = document.createElement("div");
+    bar.id = "xp-tk-warning";
+    bar.setAttribute("role", "alert");
+    bar.style.cssText = [
+      "position:fixed", "left:50%", "transform:translateX(-50%)", "top:16px",
+      "z-index:2147483647", "background:#fef2f2", "border:1px solid #fca5a5",
+      "color:#991b1b", "border-radius:10px", "padding:12px 16px",
+      "font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+      "box-shadow:0 8px 24px rgba(0,0,0,.15)", "max-width:520px",
+    ].join(";");
+    const n = rows.length;
+    bar.textContent =
+      `${n} line${n > 1 ? "s" : ""} still need a tracking category. ` +
+      `Your practice requires one on every line before approving.`;
+    document.body.appendChild(bar);
+    setTimeout(() => bar.remove(), 6000);
+
+    rows[0]?.scrollIntoView({ block: "center", behavior: "smooth" });
+    rows[0]?.querySelector(TK_INPUT)?.focus();
+  }
+
+  // 承認系のクリックか判定。下書き保存は止めない（作業を人質に取らない）。
+  function tkIsApproveClick(target) {
+    if (target.closest?.('[data-automationid^="ApproveAndEmailButton"]')) return true;
+    // ▾メニューの "Approve …" 項目
+    const opt = target.closest?.('[role="option"],[role="menuitem"]');
+    return !!opt && /^approve/i.test((opt.textContent || "").trim());
+  }
+
+  // ⚠️ このリスナーは §6.5 の Approve 乗っ取りより先に登録すること。
+  //    先に検証しないと、未入力のまま承認が走ってしまう。
+  window.addEventListener(
+    "click",
+    (e) => {
+      if (!tkEnabled || !tkPro) return;
+      if (!location.pathname.toLowerCase().includes("invoicing")) return;
+      if (!tkIsApproveClick(e.target)) return;
+
+      const missing = tkMissingRows();
+      if (!missing.length) return;         // 問題なし → 通常の承認へ流す
+
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      tkMark(missing);
+      console.warn(`[Xero Power] Approval blocked — ${missing.length} line(s) missing a tracking category.`);
+    },
+    true
+  );
+
+  // ─────────────────────────────────────────
   // 6.5 新インボイス：Approve を既定アクションに
   //   背景: 新インボイスの主ボタンは「Approve & email」。
   //   "Approveだけを既定に" は Product Ideas で440票だが Xero は実装拒否(2026-01)。
@@ -1331,6 +1469,59 @@
     requestAnimationFrame(() => { ocPending = false; ocApply(); });
   });
   if (document.body) ocObserver.observe(document.body, { childList: true, subtree: true });
+
+  // ─────────────────────────────────────────
+  // 6.8 ダークモード（無料）
+  //   背景: Xero Product Ideas で533票、Xeroは「開発予定なし」と明言。
+  //   131件の拒否済み要望の中で、最も「拡張機能で解ける」項目。
+  //
+  //   実装方針: Xeroは :root にCSS変数でテーマを持っていない（実機確認済み）。
+  //   クラス名を個別に潰すと新旧2世代のUI全てを追う保守地獄になるので、
+  //   ルートを反転 → 反転させたくない要素だけ二重反転で戻す方式を採る。
+  //
+  //   実機確認(2026-08-01)で見つかった相互作用:
+  //     ①画像/ロゴ  → 二重反転しないとネガになる
+  //     ②ナビバー   → 組織カラー(§6.7)が反転して別の色に化ける
+  //     ③自前のUI   → ヒントバー等の緑が色あせる
+  //   ②③も二重反転の対象に含めること。
+  // ─────────────────────────────────────────
+  const DARK_CSS = `
+    html.xp-dark { filter: invert(0.92) hue-rotate(180deg); background: #fff; }
+    html.xp-dark img,
+    html.xp-dark video,
+    html.xp-dark svg,
+    html.xp-dark canvas,
+    html.xp-dark iframe,
+    html.xp-dark [style*="background-image"],
+    html.xp-dark #wac-top-panel,
+    html.xp-dark #xp-br-bar,
+    html.xp-dark #xp-backdrop,
+    html.xp-dark #xp-toast,
+    html.xp-dark #xp-tk-warning,
+    html.xp-dark #xp-org-strip {
+      filter: invert(1) hue-rotate(180deg);
+    }
+  `;
+
+  function dmApply(on) {
+    if (on && !document.getElementById("xp-dark-css")) {
+      const st = document.createElement("style");
+      st.id = "xp-dark-css";
+      st.textContent = DARK_CSS;
+      (document.head || document.documentElement).appendChild(st);
+    }
+    document.documentElement.classList.toggle("xp-dark", !!on);
+  }
+
+  if (chrome?.storage?.local) {
+    chrome.storage.local.get(["xp_dark_mode"])
+      .then((d) => dmApply(d.xp_dark_mode === true))
+      .catch(() => {});
+
+    chrome.storage.onChanged.addListener((c, area) => {
+      if (area === "local" && c.xp_dark_mode) dmApply(c.xp_dark_mode.newValue === true);
+    });
+  }
 
   // ─────────────────────────────────────────
   // 7. ページ別機能の起動 / 終了

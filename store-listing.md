@@ -15,7 +15,9 @@ Ctrl+K command palette + keyboard shortcuts for Xero. Jump to any screen in 2 se
 
 ```
 v0.9.0
+・Dark mode — 533 of you asked Xero for this
 ・Colour-code your organisations — give each one its own nav bar colour so you always know which set of books you are in
+・Require a tracking category before an invoice can be approved (Pro)
 ・Fixed "Bank Reconciliation" in the command palette landing on the dashboard instead of your bank account
 
 v0.8.0
@@ -85,6 +87,22 @@ A hint bar at the top of the reconciliation screen shows the shortcuts while you
 Xero's default button on an invoice is "Approve & email" — so one stray click sends an email to your client. 440 people asked Xero to let them change it. Xero said there are no plans to and locked the thread.
 
 Xero Power changes the default to plain **Approve**. Emailing is still one click away in the dropdown, exactly where it was. Nothing is removed; the default is just the safe one. You can switch it back off in settings at any time.
+
+---
+
+**Dark mode**
+
+Xero has no plans to add one. 533 people asked. Flip a switch in the extension's settings and every Xero screen goes dark — invoices, bank rec, reports, the lot.
+
+---
+
+**Stop miscoded lines before they land (Pro)**
+
+If your practice runs tracking categories, one untagged line means a report that does not add up and someone reopening the file weeks later.
+
+Turn on the requirement and Xero Power blocks **Approve** until every line on the invoice has a tracking category, showing you exactly which lines are missing one. Drafts still save normally, so nobody loses work in progress.
+
+It is a guardrail, not a lock — someone who disables the extension can approve without it. It is there to catch the honest slip, which is what actually costs you time.
 
 ---
 
