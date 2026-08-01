@@ -14,6 +14,10 @@ Ctrl+K command palette + keyboard shortcuts for Xero. Jump to any screen in 2 se
 > 掲載文の先頭には変更履歴を置く運用。新バージョンごとに1ブロック追記する。
 
 ```
+v0.9.0
+・Colour-code your organisations — give each one its own nav bar colour so you always know which set of books you are in
+・Fixed "Bank Reconciliation" in the command palette landing on the dashboard instead of your bank account
+
 v0.8.0
 ・You can now send questions and feature requests straight from the extension popup
 
@@ -39,7 +43,7 @@ v0.3.0
 
 **Stop clicking through menus. Start flying through Xero.**
 
-Xero Power adds the keyboard-first workflow that Xero power users have been asking for — a command palette, bank reconciliation shortcuts, and a safer Approve button.
+Xero Power adds the keyboard-first workflow that Xero power users have been asking for — a command palette, bank reconciliation shortcuts, a safer Approve button, and a colour for every organisation you look after.
 
 ---
 
@@ -81,6 +85,16 @@ A hint bar at the top of the reconciliation screen shows the shortcuts while you
 Xero's default button on an invoice is "Approve & email" — so one stray click sends an email to your client. 440 people asked Xero to let them change it. Xero said there are no plans to and locked the thread.
 
 Xero Power changes the default to plain **Approve**. Emailing is still one click away in the dropdown, exactly where it was. Nothing is removed; the default is just the safe one. You can switch it back off in settings at any time.
+
+---
+
+**Colour-code your organisations**
+
+If you look after several Xero organisations, every one of them looks the same — and that is how a transaction ends up in the wrong set of books.
+
+Give each organisation its own navigation bar colour and you know where you are before you read a word. Set it once in settings; organisations show up there on their own as you open them.
+
+Two organisations are free. Pro covers as many as you run.
 
 ---
 
