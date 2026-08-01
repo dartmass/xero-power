@@ -136,12 +136,23 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
+// ── オーナー用の解除キー ──────────────────────────────────────
+// 実機検証のために、決済を通さず Pro を有効にするためのもの。
+//
+// ⚠️ これは秘密ではない。拡張機能のコードは誰でも読めるので、この文字列も読める。
+//    ただし Pro 判定はもともと chrome.storage の xp_pro を見ているだけで、
+//    DevToolsから1行書き込めば誰でも解除できる。つまりこのキーを足しても
+//    防御力は変わらない（元から無い）。変えたければここを書き換えるだけ。
+const OWNER_KEY = 'XP-OWNER-UNLOCK';
+
 // ── Polar ライセンス検証 ──────────────────────────────────────
+// 戻り値: false | 'polar' | 'owner'
 async function validateLicense(key) {
+  if (key.trim().toUpperCase() === OWNER_KEY) return 'owner';
+
   // Polar が未設定の場合はスキップ（開発中）
   if (POLAR_ORG_ID === 'YOUR_POLAR_ORG_ID') {
-    // 開発用: "DEV-PRO" で Pro 解放
-    return key.trim().toUpperCase() === 'DEV-PRO';
+    return key.trim().toUpperCase() === 'DEV-PRO' ? 'owner' : false;
   }
   try {
     const res = await fetch('https://api.polar.sh/v1/licenses/validate', {
@@ -154,15 +165,17 @@ async function validateLicense(key) {
       }),
     });
     const json = await res.json();
-    return json.valid === true;
+    return json.valid === true ? 'polar' : false;
   } catch {
     return false;
   }
 }
 
 // ── UI: Pro / Free 状態を反映 ─────────────────────────────────
-function applyProState(isPro) {
-  planChip.textContent = isPro ? 'Pro ✅' : 'Free';
+// isOwner=true のときはチップに (owner) を出す。
+// 検証中の画面を宣材に使ったとき、本物のProと見分けがつかないと困るため。
+function applyProState(isPro, isOwner) {
+  planChip.textContent = isPro ? (isOwner ? 'Pro (owner) ✅' : 'Pro ✅') : 'Free';
   planChip.className   = 'plan-chip ' + (isPro ? 'chip-pro' : 'chip-free');
   upsellBox.style.display    = isPro ? 'none' : 'block';
   deactivateBtn.style.display = isPro ? 'inline-block' : 'none';
@@ -201,7 +214,7 @@ function loadShortcuts(sc) {
 chrome.storage.local.get([
   'xp_pro', 'xp_license', 'xp_shortcuts',
   'xp_invoice_approve_default', 'xp_bill_approve_view_next',
-  'xp_org_colors', 'xp_dark_mode', 'xp_require_tracking',
+  'xp_org_colors', 'xp_dark_mode', 'xp_require_tracking', 'xp_pro_owner',
 ]).then(data => {
   const isPro = data.xp_pro === true;
   const sc    = Object.assign({}, DEFAULTS, data.xp_shortcuts || {});
@@ -211,7 +224,7 @@ chrome.storage.local.get([
   renderOrgs();
 
   if (data.xp_license) licenseInput.value = data.xp_license;
-  applyProState(isPro);
+  applyProState(isPro, data.xp_pro_owner === true);
   loadShortcuts(sc);
   upgradeLink.href = UPGRADE_URL;
 
@@ -258,10 +271,13 @@ activateBtn.addEventListener('click', async () => {
 
   licenseStatus.style.display = 'block';
   if (valid) {
+    const owner = valid === 'owner';
     licenseStatus.className   = 'license-status status-ok';
-    licenseStatus.textContent = '✓ Pro activated! Reload any Xero tab to apply.';
-    chrome.storage.local.set({ xp_pro: true, xp_license: key });
-    applyProState(true);
+    licenseStatus.textContent = owner
+      ? '✓ Pro unlocked locally (owner key). Reload any Xero tab to apply.'
+      : '✓ Pro activated! Reload any Xero tab to apply.';
+    chrome.storage.local.set({ xp_pro: true, xp_license: key, xp_pro_owner: owner });
+    applyProState(true, owner);
   } else {
     licenseStatus.className   = 'license-status status-err';
     licenseStatus.textContent = '✗ Invalid license key. Check your purchase email.';
@@ -270,12 +286,12 @@ activateBtn.addEventListener('click', async () => {
 
 // ── ライセンス削除 ────────────────────────────────────────────
 deactivateBtn.addEventListener('click', () => {
-  chrome.storage.local.remove(['xp_pro', 'xp_license']);
+  chrome.storage.local.remove(['xp_pro', 'xp_license', 'xp_pro_owner']);
   licenseInput.value = '';
   licenseStatus.style.display = 'block';
   licenseStatus.className   = 'license-status status-ok';
   licenseStatus.textContent = 'License removed. Reverted to Free.';
-  applyProState(false);
+  applyProState(false, false);
   loadShortcuts(DEFAULTS);
 });
 
