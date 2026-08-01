@@ -17,7 +17,7 @@ Ctrl+K command palette + keyboard shortcuts for Xero. Jump to any screen in 2 se
 v0.9.0
 ・Dark mode — 533 of you asked Xero for this
 ・Colour-code your organisations — give each one its own nav bar colour so you always know which set of books you are in
-・Require a tracking category before an invoice can be approved (Pro)
+・Require a tracking category before an invoice or bill can be approved (Pro)
 ・Rebuilt the command palette against live Xero — 15 of its destinations had gone dead as Xero moved pages, including every report. All 39 are now checked, and there are more of them
 
 v0.8.0
@@ -100,7 +100,7 @@ Xero has no plans to add one. 533 people asked. Flip a switch in the extension's
 
 If your practice runs tracking categories, one untagged line means a report that does not add up and someone reopening the file weeks later.
 
-Turn on the requirement and Xero Power blocks **Approve** until every line on the invoice has a tracking category, showing you exactly which lines are missing one. Drafts still save normally, so nobody loses work in progress.
+Turn on the requirement and Xero Power blocks **Approve** — on invoices and on bills — until every line has a tracking category, showing you exactly which lines are missing one. Drafts still save normally, so nobody loses work in progress.
 
 It is a guardrail, not a lock — someone who disables the extension can approve without it. It is there to catch the honest slip, which is what actually costs you time.
 

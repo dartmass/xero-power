@@ -22,7 +22,7 @@
  *         拡張機能で解けるものを実装するシリーズ。
  *         ①組織ごとのナビバー配色(§6.7 / 308票)。複数クライアントを扱う
  *           簿記担当の「間違った組織に入力する」事故を防ぐ。無料2組織/Pro無制限。
- *         ②トラッキング必須化(§6.4 / 287票)。事務所のコーディング統一。Pro。
+ *         ②トラッキング必須化(§6.4 / 287票)。請求書とBillsの両方。事務所のコーディング統一。Pro。
  *         ③ダークモード(§6.8 / 533票)。無料。
  *         ④パレット全28件を実Xeroで検証し直し、**15件が死んでいた**のを修正。
  *           ・レポート7件は reporting.xero.com へ移転（別ホスト）
@@ -994,19 +994,43 @@
   //   ⚠️ これは「ガードレール」であって統制ではない。拡張を切れば回避できる。
   //      設定画面にもその旨を明記すること。
   //
-  //   実Xero(2026-08-01 Demo Company)でライブ確認済み:
-  //     行      = tbody tr
-  //     入力欄  = [data-automationid*="tracking-"][data-automationid$="--search-field--input"]
-  //     ※ 列名は組織が付けた名前（例 "Region"）だが automationid は tracking-0 固定。
-  //        名前に依存しないのでどの組織でも効く。
-  //     承認    = [data-automationid^="ApproveAndEmailButton"]
+  //   Xeroには世代の違う2つのUIがあり、どちらも実機で確認済み(2026-08-01)。
+  //   どちらも列見出しは組織が付けた名前（例 "Region"）だが、内部の識別子は
+  //   固定なので、クライアントがカテゴリを何と名付けても効く。
   //
-  //   Bills(AccountsPayable/Edit.aspx)は ExtJS グリッドで行ごとのinputが存在せず、
-  //   値は保存時に LineItemsToSaveJSON へまとめて書き出される。取りこぼす検証は
-  //   無いより危険なので対象外。対応するなら別途しっかり作ること。
+  //   ① 新インボイス（React / /app/{orgId}/invoicing）
+  //      行   = tbody tr
+  //      入力 = [data-automationid*="tracking-"][...="--search-field--input"] の .value
+  //      承認 = [data-automationid^="ApproveAndEmailButton"]
+  //
+  //   ② Bills（ExtJS 3 / /AccountsPayable/Edit.aspx）
+  //      行   = .x-grid3-row
+  //      セル = .x-grid3-td-colTracking1 （値はテキスト。inputは編集中のセルにしか無い）
+  //      承認 = a.words「Approve」＋ ▾の「Approve & add another」
+  //      ※ ExtJSは空セルを &nbsp; で埋めるので   を除去してから空判定すること。
   // ─────────────────────────────────────────
-  const TK_ROW  = "tbody tr";
-  const TK_INPUT = '[data-automationid*="tracking-"][data-automationid$="--search-field--input"]';
+
+  // ① 新インボイス側
+  const TK_INV_ROW   = "tbody tr";
+  const TK_INV_TRACK = '[data-automationid*="tracking-"][data-automationid$="--search-field--input"]';
+  const TK_INV_CONTENT = [
+    '[data-automationid*="description"] input',
+    '[data-automationid*="description"] textarea',
+    '[data-automationid*="quantity"] input',
+    '[data-automationid*="unitAmount"] input',
+    '[data-automationid*="account"][data-automationid$="--search-field--input"]',
+  ];
+
+  // ② Bills側
+  const TK_BILL_ROW   = ".x-grid3-row";
+  const TK_BILL_TRACK = '[class*="x-grid3-td-colTracking"]';
+  const TK_BILL_CONTENT = [
+    ".x-grid3-td-colDescription",
+    ".x-grid3-td-colQuantity",
+    ".x-grid3-td-colUnitPrice",
+    ".x-grid3-td-colAccount",
+    ".x-grid3-td-colLineAmount",
+  ];
 
   let tkEnabled = false;  // xp_require_tracking（既定OFF・Pro）
   let tkPro     = false;
@@ -1025,27 +1049,40 @@
     });
   }
 
-  function tkVal(el) { return el ? (el.value || "").trim() : ""; }
-
-  // 空行は検証しない。何か入力がある行だけが対象。
-  function tkRowHasContent(tr) {
-    const sels = [
-      '[data-automationid*="description"] input',
-      '[data-automationid*="description"] textarea',
-      '[data-automationid*="quantity"] input',
-      '[data-automationid*="unitAmount"] input',
-      '[data-automationid*="account"][data-automationid$="--search-field--input"]',
-    ];
-    return sels.some((s) => tkVal(tr.querySelector(s)) !== "");
+  function tkPageKind() {
+    const p = location.pathname.toLowerCase();
+    if (p.includes("invoicing")) return "invoice";
+    if (p.includes("accountspayable/edit")) return "bill";
+    return null;
   }
 
-  // トラッキング未入力の行を返す
+  // input の値。無ければ空文字。
+  function tkVal(el) { return el ? (el.value || "").trim() : ""; }
+
+  // セルの表示テキスト。ExtJSの空セルは &nbsp; なので潰してから判定する。
+  function tkText(el) {
+    return el ? (el.textContent || "").replace(/ /g, " ").trim() : "";
+  }
+
+  // 空行は検証しない。何か入力がある行だけが対象。
+  function tkRowHasContent(row, sels, read) {
+    return sels.some((s) => read(row.querySelector(s)) !== "");
+  }
+
+  // トラッキング未入力の行を返す（ページ種別で読み方を切り替える）
   function tkMissingRows() {
-    return [...document.querySelectorAll(TK_ROW)].filter((tr) => {
-      if (!tkRowHasContent(tr)) return false;
-      const inputs = [...tr.querySelectorAll(TK_INPUT)];
-      if (!inputs.length) return false;   // トラッキング未設定の組織では何もしない
-      return inputs.some((i) => tkVal(i) === "");
+    const kind = tkPageKind();
+    if (!kind) return [];
+
+    const cfg = kind === "invoice"
+      ? { row: TK_INV_ROW,  track: TK_INV_TRACK,  content: TK_INV_CONTENT,  read: tkVal }
+      : { row: TK_BILL_ROW, track: TK_BILL_TRACK, content: TK_BILL_CONTENT, read: tkText };
+
+    return [...document.querySelectorAll(cfg.row)].filter((row) => {
+      if (!tkRowHasContent(row, cfg.content, cfg.read)) return false;
+      const cells = [...row.querySelectorAll(cfg.track)];
+      if (!cells.length) return false;   // トラッキング未設定の組織では何もしない
+      return cells.some((c) => cfg.read(c) === "");
     });
   }
 
@@ -1060,10 +1097,14 @@
 
   function tkMark(rows) {
     tkClearMarks();
-    rows.forEach((tr) => {
-      tr.querySelectorAll(TK_INPUT).forEach((i) => {
-        if (tkVal(i) !== "") return;
-        const cell = i.closest("td") || i;
+    const kind = tkPageKind();
+    const track = kind === "invoice" ? TK_INV_TRACK : TK_BILL_TRACK;
+    const read  = kind === "invoice" ? tkVal : tkText;
+
+    rows.forEach((row) => {
+      row.querySelectorAll(track).forEach((c) => {
+        if (read(c) !== "") return;
+        const cell = c.closest("td") || c;
         cell.style.outline = "2px solid #dc2626";
         cell.style.borderRadius = "3px";
         cell.dataset.xpTkMark = "1";
@@ -1088,15 +1129,26 @@
     setTimeout(() => bar.remove(), 6000);
 
     rows[0]?.scrollIntoView({ block: "center", behavior: "smooth" });
-    rows[0]?.querySelector(TK_INPUT)?.focus();
   }
 
   // 承認系のクリックか判定。下書き保存は止めない（作業を人質に取らない）。
   function tkIsApproveClick(target) {
-    if (target.closest?.('[data-automationid^="ApproveAndEmailButton"]')) return true;
-    // ▾メニューの "Approve …" 項目
-    const opt = target.closest?.('[role="option"],[role="menuitem"]');
-    return !!opt && /^approve/i.test((opt.textContent || "").trim());
+    const kind = tkPageKind();
+
+    if (kind === "invoice") {
+      if (target.closest?.('[data-automationid^="ApproveAndEmailButton"]')) return true;
+      const opt = target.closest?.('[role="option"],[role="menuitem"]');
+      return !!opt && /^approve/i.test((opt.textContent || "").trim());
+    }
+
+    if (kind === "bill") {
+      // 主ボタン a.words「Approve」と、▾の「Approve & add another」の両方。
+      // 「Save」（下書き）は通す。
+      const a = target.closest?.("a");
+      return !!a && /^approve/i.test((a.textContent || "").trim());
+    }
+
+    return false;
   }
 
   // ⚠️ このリスナーは §6.5 の Approve 乗っ取りより先に登録すること。
@@ -1105,7 +1157,7 @@
     "click",
     (e) => {
       if (!tkEnabled || !tkPro) return;
-      if (!location.pathname.toLowerCase().includes("invoicing")) return;
+      if (!tkPageKind()) return;
       if (!tkIsApproveClick(e.target)) return;
 
       const missing = tkMissingRows();
