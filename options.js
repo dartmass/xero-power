@@ -143,12 +143,14 @@ chrome.storage.onChanged.addListener((changes, area) => {
 //    ただし Pro 判定はもともと chrome.storage の xp_pro を見ているだけで、
 //    DevToolsから1行書き込めば誰でも解除できる。つまりこのキーを足しても
 //    防御力は変わらない（元から無い）。変えたければここを書き換えるだけ。
+// ⚠️ ストア提出前に '' に戻すこと。scripts/package.sh が入ったままだと警告する。
 const OWNER_KEY = 'XP-OWNER-UNLOCK';
 
 // ── Polar ライセンス検証 ──────────────────────────────────────
 // 戻り値: false | 'polar' | 'owner'
 async function validateLicense(key) {
-  if (key.trim().toUpperCase() === OWNER_KEY) return 'owner';
+  // OWNER_KEY を '' にしたとき、空入力がオーナー扱いにならないようにする
+  if (OWNER_KEY && key.trim().toUpperCase() === OWNER_KEY) return 'owner';
 
   // Polar が未設定の場合はスキップ（開発中）
   if (POLAR_ORG_ID === 'YOUR_POLAR_ORG_ID') {
