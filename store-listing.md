@@ -27,7 +27,7 @@ v0.8.0
 v0.7.1
 ・Fixed custom command palette shortcut not taking effect (Pro)
 ・Shortcut changes now apply instantly — no page reload needed
-・Shortcuts now display correctly on ChromeOS and Windows (Ctrl instead of ⌘)
+・Shortcuts now display correctly on ChromeOS and Windows (Ctrl instead of the Mac-only Cmd symbol)
 ・Interface text is now consistently in English
 
 v0.7.0
@@ -52,7 +52,7 @@ Xero Power adds the keyboard-first workflow that Xero power users have been aski
 
 **Ctrl+K Command Palette**
 
-Press Ctrl+K anywhere in Xero — on Windows, on a Chromebook, or ⌘K on a Mac — to open a searchable list of 39 screens.
+Press Ctrl+K anywhere in Xero — on Windows, on a Chromebook, or Cmd+K on a Mac — to open a searchable list of 39 screens.
 
 • Bank Reconciliation → type "rec" → Enter
 • New Invoice → type "inv" → Enter

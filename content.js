@@ -593,7 +593,7 @@
   // ⚠️ 大文字小文字を無視すること: userAgentData.platform は "macOS"（小文字m）、
   //    navigator.platform は "MacIntel"。/i が無いと Mac を取りこぼす。
   const IS_MAC    = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || "");
-  const MOD_LABEL = IS_MAC ? "⌘" : "Ctrl+";
+  const MOD_LABEL = IS_MAC ? "Cmd+" : "Ctrl+";
 
   // カスタムショートカット（Pro）。ここは常に「実キー1文字（小文字）」を保持する。
   let SC = { palette: 'k', match: 'm', create: 'c', transfer: 't', discuss: 'd' };
@@ -767,7 +767,7 @@
         <div id="xp-list"></div>
         <div id="xp-footer">
           <span class="xp-hint"><span class="xp-key">↑↓</span> navigate</span>
-          <span class="xp-hint"><span class="xp-key">↵</span> go</span>
+          <span class="xp-hint"><span class="xp-key">Enter</span> go</span>
           <span class="xp-hint"><span class="xp-key">ESC</span> close</span>
           <span id="xp-footer-logo">Xero Power</span>
         </div>
@@ -931,10 +931,10 @@
       K("C", "Create"),
       K("T", "Transfer"),
       K("D", "Discuss"),
-      K("↵", "OK"),
+      K("Enter", "OK"),
       // C/T のフォームに入ると素のEnterはXeroの候補選択に使われるので、
       // 保存は修飾キー付き。抜けるのは Esc。
-      K(MOD_LABEL + "↵", "Save"),
+      K(MOD_LABEL + "Enter", "Save"),
       K("Esc", "back to rows"),
     ].join("");
     anchor.insertBefore(bar, anchor.firstChild);
@@ -1901,7 +1901,7 @@
   showOnboardingToast();
 
   console.log(
-    `%c[Xero Power] v${window.__xeroPower} ✅  ${MOD_LABEL}K palette | Most used | Bank Rec: ↑↓ M C T D ↵ | Invoicing: Approve by default | Pro: options page`,
+    `%c[Xero Power] v${window.__xeroPower} ✅  ${MOD_LABEL}K palette | Most used | Bank Rec: arrows M C T D Enter | Invoicing: Approve by default | Pro: options page`,
     "color:#0a7a4b;font-weight:bold;font-size:13px"
   );
 })();

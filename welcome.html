@@ -338,7 +338,7 @@
         <div class="step">
           <div class="step-num">3</div>
           <div class="step-text">
-            After matching, press <span class="step-key">↵ Enter</span> to confirm and move on.
+            After matching, press <span class="step-key">Enter</span> to confirm and move on.
             For Create or Transfer, fill in the form that opens, then press Enter to save.
           </div>
         </div>
@@ -373,7 +373,7 @@
           <div class="sc-desc">Discuss</div>
         </div>
         <div class="sc-chip">
-          <div class="sc-enter">↵</div>
+          <div class="sc-enter">Enter</div>
           <div class="sc-desc">OK / Save</div>
         </div>
       </div>
@@ -544,9 +544,9 @@
     // ChromeOS: userAgentData.platform="Chrome OS" → 非Mac なので Ctrl+K のまま
     const isMac = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '');
     if (isMac) {
-      document.getElementById('shortcut-label').textContent = '⌘K';
+      document.getElementById('shortcut-label').textContent = 'Cmd+K';
       document.getElementById('key-display').innerHTML =
-        '<span class="kbd">⌘</span><span class="kbd-plus"> + </span><span class="kbd">K</span>';
+        '<span class="kbd">Cmd</span><span class="kbd-plus"> + </span><span class="kbd">K</span>';
     }
 
     // Video: swap placeholder once VIDEO_ID is known

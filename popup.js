@@ -12,7 +12,7 @@ const FEEDBACK_URL =
 const IS_MAC = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '');
 
 const DEFAULTS = {
-  palette:  IS_MAC ? '⌘K' : 'Ctrl+K',
+  palette:  IS_MAC ? 'Cmd+K' : 'Ctrl+K',
   match:    'M',
   create:   'C',
   transfer: 'T',

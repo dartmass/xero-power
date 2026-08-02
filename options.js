@@ -13,7 +13,7 @@ const UPGRADE_URL = 'https://buy.polar.sh/polar_cl_Ol8WEFJ3AKG1X1680jxeq8XPBADxx
 const IS_MAC = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '');
 
 const DEFAULTS = {
-  palette:  IS_MAC ? '⌘K' : 'Ctrl+K',
+  palette:  IS_MAC ? 'Cmd+K' : 'Ctrl+K',
   match:    'M',
   create:   'C',
   transfer: 'T',
