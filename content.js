@@ -65,17 +65,25 @@
   //
   // ⚠️ 保存はstorageを読んでから書く。メモリ上の brAccounts を信用すると、
   //    上の get() が後から解決したときに書いたばかりの値を潰す。
+  // ⚠️ storage待ちの最中にページが遷移すると chrome が接続を切り、
+  //    "The message port closed before a response was received" が
+  //    未処理の例外としてコンソールに赤く出る（実機で確認）。
+  //    実害は無いが出荷物としてよくないので、ここで飲み込む。
   async function brRememberAccount() {
     const acct = new URLSearchParams(location.search).get("accountId");
     const org  = ocOrgId();
     if (!acct || !org || !chrome?.storage?.local) return;
-    const d   = await chrome.storage.local.get(["xp_bank_accounts"]);
-    const map = d.xp_bank_accounts || {};
-    if (map[org] === acct) return;
-    map[org] = acct;
-    brAccounts = map;
-    await chrome.storage.local.set({ xp_bank_accounts: map });
-    console.log(`%c[Xero Power] Remembered bank account for ${org}`, "color:#0a7a4b");
+    try {
+      const d   = await chrome.storage.local.get(["xp_bank_accounts"]);
+      const map = d.xp_bank_accounts || {};
+      if (map[org] === acct) return;
+      map[org] = acct;
+      brAccounts = map;
+      await chrome.storage.local.set({ xp_bank_accounts: map });
+      console.log(`%c[Xero Power] Remembered bank account for ${org}`, "color:#0a7a4b");
+    } catch {
+      /* 遷移でstorageが切れただけ。次の読み込みでまた記憶する。 */
+    }
   }
 
   // ⚠️ 旧URL(BankRec.aspx)には組織IDが無く、ocOrgId() はXeroのナビに
@@ -825,14 +833,14 @@
 
     document.getElementById('xp-upsell-link').addEventListener('mousedown', e => {
       e.preventDefault();
-      chrome.storage.local.set({ xp_upsell_shown: true });
+      chrome.storage.local.set({ xp_upsell_shown: true }).catch(() => {});
       closePalette();
       window.open(chrome.runtime.getURL('options.html'));
     });
 
     document.getElementById('xp-upsell-dismiss').addEventListener('mousedown', e => {
       e.preventDefault();
-      chrome.storage.local.set({ xp_upsell_shown: true });
+      chrome.storage.local.set({ xp_upsell_shown: true }).catch(() => {});
       bar.remove();
     });
   }
@@ -1470,16 +1478,24 @@
 
     btn.addEventListener("click", async (e) => {
       e.preventDefault();
+
       // 先に「次」を控える。ページ遷移後にこれを見て飛ぶ。
-      await chrome.storage?.local?.set({
-        xp_bill_pending: { org: baOrg(), approving: baCurrentId(), next },
-      });
+      // ⚠️ ここは best-effort。storageが失敗しても承認は必ず実行する。
+      //    await で例外を投げると、押しても何も起きないボタンになる。
+      try {
+        await chrome.storage?.local?.set({
+          xp_bill_pending: { org: baOrg(), approving: baCurrentId(), next },
+        });
+      } catch {
+        /* 次へは進めないが、承認そのものは通す */
+      }
+
       // 本物の Approve を叩く。トラッキング必須化(§6.4)が止めた場合は
       // dispatchEvent が false を返すので、控えを取り消す。
       const ok = approve.dispatchEvent(
         new MouseEvent("click", { bubbles: true, cancelable: true })
       );
-      if (!ok) chrome.storage?.local?.remove("xp_bill_pending");
+      if (!ok) chrome.storage?.local?.remove("xp_bill_pending")?.catch?.(() => {});
     });
 
     const group = approve.closest("#approveBttn") || approve.closest(".float-right") || approve.parentElement;
@@ -1614,7 +1630,7 @@
     const known = ocOrgs[id];
     if (!known || (name && known.name !== name)) {
       ocOrgs[id] = { name: name || known?.name || id, color: known?.color || null };
-      chrome.storage?.local?.set({ xp_org_colors: ocOrgs });
+      chrome.storage?.local?.set({ xp_org_colors: ocOrgs })?.catch?.(() => {});
     }
 
     const color = ocOrgs[id]?.color;

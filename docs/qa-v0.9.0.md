@@ -13,9 +13,9 @@
 | 1 | Ctrl+K パレットが開く | ✅ | 開くことを確認 |
 | 2 | ⭐Most used の学習 | ✅ | 2回以上使った画面が上位に出ることを確認 |
 | 3 | Bank Reconciliation（口座未記憶） | ✅ | 口座一覧に着地。**これが仕様**（accountIdが無いとXeroがホームに飛ばすため） |
-| 4 | Bank Reconciliation（口座記憶後） | ❌→🔧 | **不具合を発見・修正済み**。storageの読み込みが後から解決して、記憶した値をメモリ上で上書きしていた。要再テスト |
+| 4 | Bank Reconciliation（口座記憶後） | ✅ | ホームからCtrl+K→照合画面へ直行を確認。修正が効いた |
 | 5 | パレットの他の行き先 | ⬜ | 特にレポート系（reporting.xero.com へ飛ぶか）と Chart of Accounts / Manual Journals |
-| 6 | Bank Rec ショートカット ↑↓ M C T D | ⬜ | 行移動と各アクション |
+| 6 | Bank Rec ショートカット ↑↓ M C T D | ⏳ | 緑のヒントバーの表示は確認済み。各キーの動作は未確認 |
 | 7 | Bank Rec 確定 ↵ | ⬜ | M のあと Enter で確定して次へ |
 | 8 | Approve既定の変更（請求書） | ⬜ | ボタンが「Approve」になっている／▾にメールが残っている |
 | 9 | ダークモード | ⬜ | 設定でON。請求書・Bank Rec 両方で崩れないか |
