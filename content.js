@@ -891,7 +891,69 @@
         input?.focus();
       }, 150);
     }
+    // Match後: Xeroが候補を自動提示しない場合は候補リストが出る。
+    // そこをキーボードで選べるようにする（出ない場合は何もしない）。
+    if (actionType === "match") setTimeout(brCandEnter, 500);
     brRescan();
+  }
+
+  // ─────────────────────────────────────────
+  // Match の候補リスト操作
+  //   実Xero(2026-08-02)で確認した構造:
+  //     候補リスト = .tables .selectList
+  //     候補1行    = .transaction-row
+  //     チェック   = 行内の input[type="checkbox"]
+  //   「Select all」は #selectAllTransactions で .transaction-row の外にあるため、
+  //   行を起点にすれば自然に除外される。
+  //
+  //   ⚠️ .selectList は「1.候補リスト」と「2.選択済みリスト」の両方に付いている。
+  //      .tables を付けずに拾うと、チェックを入れるたびに選択済み側にも同じ行が
+  //      現れて件数が増え、カーソル位置がずれる（実機で再現）。
+  //      候補側だけが .tables の中にあるので、これで絞る。
+  // ─────────────────────────────────────────
+  let brCandMode = false;
+  let brCandIdx  = 0;
+
+  function brCandidates() {
+    const line = brLines()[brIdx];
+    return line ? [...line.querySelectorAll(".tables .selectList .transaction-row")] : [];
+  }
+
+  function brCandHighlight(cands, idx) {
+    cands.forEach((c, i) => {
+      c.style.outline      = i === idx ? "2px solid #0a7a4b" : "";
+      c.style.background   = i === idx ? "#f0fff8" : "";
+      c.style.borderRadius = i === idx ? "4px" : "";
+    });
+    cands[idx]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  function brCandClear() {
+    document.querySelectorAll(".tables .selectList .transaction-row").forEach((c) => {
+      c.style.outline = c.style.background = c.style.borderRadius = "";
+    });
+  }
+
+  function brCandEnter() {
+    const cands = brCandidates();
+    if (!cands.length) return false;   // Xeroが候補を提示済み → 通常のOKで足りる
+    brCandMode = true;
+    brCandIdx  = 0;
+    brCandHighlight(cands, 0);
+    brRenderBar();
+    return true;
+  }
+
+  function brCandExit() {
+    if (!brCandMode) return;
+    brCandMode = false;
+    brCandClear();
+    brHighlight(brLines(), brIdx);
+    brRenderBar();
+  }
+
+  function brCandToggle() {
+    brCandidates()[brCandIdx]?.querySelector('input[type="checkbox"]')?.click();
   }
 
   function brConfirm() {
@@ -904,9 +966,14 @@
       line.querySelector("button.save-button")?.click();
     }
     brLastAction = null;
+    brCandMode   = false;
+    brCandClear();
+    brRenderBar();
     brRescan();
   }
 
+  // ⚠️ キー表記は記号ではなく単語で書く。⌘ や ↵ はMacのキーボードにしか
+  //    印字されておらず、ユーザーの64%を占めるChromeOSでは読めない。
   function brShowBar() {
     if (document.getElementById("xp-br-bar")) return;
     const anchor = document.getElementById("ItemsToReconcile");
@@ -921,27 +988,45 @@
       "border-radius:0 0 8px 8px", "margin-bottom:6px",
       "box-shadow:0 2px 8px rgba(0,0,0,.15)",
     ].join(";");
-    // キーの表記ゆれを防ぐため1箇所で組む
+    anchor.insertBefore(bar, anchor.firstChild);
+    brRenderBar();
+  }
+
+  // 候補選択中は使えるキーが変わるので、バーの中身も差し替える。
+  // 使えないキーを並べ続けると案内として嘘になる。
+  function brRenderBar() {
+    const bar = document.getElementById("xp-br-bar");
+    if (!bar) return;
     const K = (k, label) =>
       `<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>${k}</b> ${label}</span>`;
-    bar.innerHTML = [
-      "<strong>Xero Power</strong>",
-      K("↑↓", "navigate"),
-      K("M", "Match"),
-      K("C", "Create"),
-      K("T", "Transfer"),
-      K("D", "Discuss"),
-      K("Enter", "OK"),
-      // C/T のフォームに入ると素のEnterはXeroの候補選択に使われるので、
-      // 保存は修飾キー付き。抜けるのは Esc。
-      K(MOD_LABEL + "Enter", "Save"),
-      K("Esc", "back to rows"),
-    ].join("");
-    anchor.insertBefore(bar, anchor.firstChild);
+
+    bar.innerHTML = brCandMode
+      ? [
+          "<strong>Xero Power</strong>",
+          "<span style='opacity:.85'>Choosing a match</span>",
+          K("↑↓", "move"),
+          K("Space", "select"),
+          K("Enter", "OK"),
+          K("Esc", "back to rows"),
+        ].join("")
+      : [
+          "<strong>Xero Power</strong>",
+          K("↑↓", "navigate"),
+          K("M", "Match"),
+          K("C", "Create"),
+          K("T", "Transfer"),
+          K("D", "Discuss"),
+          K("Enter", "OK"),
+          // C/T のフォームでは素のEnterをXeroが候補選択に使うので修飾キー付き
+          K(MOD_LABEL + "Enter", "Save"),
+          K("Esc", "back to rows"),
+        ].join("");
   }
 
   function brTeardown() {
     brActive = false;
+    brCandMode = false;
+    brCandClear();
     document.getElementById("xp-br-bar")?.remove();
     brLines().forEach((l) => {
       l.style.outline = l.style.backgroundColor = l.style.borderRadius = "";
@@ -1012,6 +1097,31 @@
       }
 
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      // ── Match の候補選択中 ──
+      // 候補リストが出ている間は ↑↓ を候補の移動に使う。
+      // M/C/T/D は下の通常処理へ落として、アクションを選び直せるようにする。
+      if (brCandMode) {
+        const cands = brCandidates();
+        if (!cands.length) {
+          brCandExit();                      // 候補が消えた（確定済み等）
+        } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          brCandIdx = e.key === "ArrowDown"
+            ? Math.min(brCandIdx + 1, cands.length - 1)
+            : Math.max(brCandIdx - 1, 0);
+          brCandHighlight(cands, brCandIdx);
+          return;
+        } else if (e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          brCandToggle();
+          return;
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          brCandExit();
+          return;
+        }
+      }
 
       const lines = brLines();
       if (!lines.length) return;
