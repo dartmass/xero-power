@@ -58,16 +58,37 @@
   let brAccounts = {};   // { [orgId]: accountId }
 
   chrome.storage?.local?.get(["xp_bank_accounts"])
-    .then((d) => { brAccounts = d.xp_bank_accounts || {}; })
+    .then((d) => { brAccounts = Object.assign({}, d.xp_bank_accounts, brAccounts); })
     .catch(() => {});
 
-  // Bank Rec を開いたら、その口座を現在の組織に紐づけて記憶する
-  function brRememberAccount() {
+  // Bank Rec を開いたら、その口座を現在の組織に紐づけて記憶する。
+  //
+  // ⚠️ 保存はstorageを読んでから書く。メモリ上の brAccounts を信用すると、
+  //    上の get() が後から解決したときに書いたばかりの値を潰す。
+  async function brRememberAccount() {
     const acct = new URLSearchParams(location.search).get("accountId");
     const org  = ocOrgId();
-    if (!acct || !org || brAccounts[org] === acct) return;
-    brAccounts[org] = acct;
-    chrome.storage?.local?.set({ xp_bank_accounts: brAccounts });
+    if (!acct || !org || !chrome?.storage?.local) return;
+    const d   = await chrome.storage.local.get(["xp_bank_accounts"]);
+    const map = d.xp_bank_accounts || {};
+    if (map[org] === acct) return;
+    map[org] = acct;
+    brAccounts = map;
+    await chrome.storage.local.set({ xp_bank_accounts: map });
+    console.log(`%c[Xero Power] Remembered bank account for ${org}`, "color:#0a7a4b");
+  }
+
+  // ⚠️ 旧URL(BankRec.aspx)には組織IDが無く、ocOrgId() はXeroのナビに
+  //    描画されるリンクから拾う。document_idle の時点ではまだ描画されておらず
+  //    null が返るため、一度きりの呼び出しでは保存できない（実機で再現）。
+  //    ナビが出るまで待ってから保存する。
+  function brRememberAccountSoon(attempt = 0) {
+    if (!new URLSearchParams(location.search).get("accountId")) return;
+    if (!ocOrgId()) {
+      if (attempt < 20) setTimeout(() => brRememberAccountSoon(attempt + 1), 300);
+      return;
+    }
+    brRememberAccount();
   }
 
   function buildUrl(path) {
@@ -1686,7 +1707,7 @@
     const path = location.pathname.toLowerCase();
 
     if (path.includes("bankrec")) {
-      brRememberAccount();
+      brRememberAccountSoon();
       // DOMの準備を待ってから初期化
       const tryInit = (attempts = 0) => {
         if (document.getElementById("ItemsToReconcile")) {
