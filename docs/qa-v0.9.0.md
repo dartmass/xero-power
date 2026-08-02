@@ -15,8 +15,10 @@
 | 3 | Bank Reconciliation（口座未記憶） | ✅ | 口座一覧に着地。**これが仕様**（accountIdが無いとXeroがホームに飛ばすため） |
 | 4 | Bank Reconciliation（口座記憶後） | ✅ | ホームからCtrl+K→照合画面へ直行を確認。修正が効いた |
 | 5 | パレットの他の行き先 | ⬜ | 特にレポート系（reporting.xero.com へ飛ぶか）と Chart of Accounts / Manual Journals |
-| 6 | Bank Rec ショートカット ↑↓ M C T D | ⏳ | 緑のヒントバーの表示は確認済み。各キーの動作は未確認 |
-| 7 | Bank Rec 確定 ↵ | ⬜ | M のあと Enter で確定して次へ |
+| 6 | Bank Rec ショートカット ↑↓ M C T D | ✅ | 全キー動作を確認 |
+| 7 | Bank Rec 確定 ↵ (Match) | ⏳ | Match後のEnterは実装上到達する。要確認 |
+| 7b | Bank Rec 保存 ⌘↵ (Create/Transfer) | 🔧 | **不具合を発見・修正済み**。入力欄にフォーカスが移るとEnterが届かず「Save」が到達不能だった。⌘/Ctrl+↵ に変更。要再テスト |
+| 7c | 入力欄から Esc で行移動に戻る | 🔧 | **不具合を発見・修正済み**。入力欄に入ると↑↓が効かず戻れない袋小路だった。要再テスト |
 | 8 | Approve既定の変更（請求書） | ⬜ | ボタンが「Approve」になっている／▾にメールが残っている |
 | 9 | ダークモード | ⬜ | 設定でON。請求書・Bank Rec 両方で崩れないか |
 | 10 | 組織カラー（2組織まで無料） | ⬜ | 色を選ぶ→ナビが変わる。3つ目でPro案内が出るか |

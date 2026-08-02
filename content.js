@@ -921,14 +921,21 @@
       "border-radius:0 0 8px 8px", "margin-bottom:6px",
       "box-shadow:0 2px 8px rgba(0,0,0,.15)",
     ].join(";");
+    // キーの表記ゆれを防ぐため1箇所で組む
+    const K = (k, label) =>
+      `<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>${k}</b> ${label}</span>`;
     bar.innerHTML = [
       "<strong>Xero Power</strong>",
-      "<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>↑↓</b> navigate</span>",
-      "<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>M</b> Match</span>",
-      "<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>C</b> Create</span>",
-      "<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>T</b> Transfer</span>",
-      "<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>D</b> Discuss</span>",
-      "<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>↵</b> OK / Save</span>",
+      K("↑↓", "navigate"),
+      K("M", "Match"),
+      K("C", "Create"),
+      K("T", "Transfer"),
+      K("D", "Discuss"),
+      K("↵", "OK"),
+      // C/T のフォームに入ると素のEnterはXeroの候補選択に使われるので、
+      // 保存は修飾キー付き。抜けるのは Esc。
+      K(MOD_LABEL + "↵", "Save"),
+      K("Esc", "back to rows"),
     ].join("");
     anchor.insertBefore(bar, anchor.firstChild);
   }
@@ -978,10 +985,32 @@
       }
 
       // ── Bank Rec ショートカット ──
-      // 入力欄にフォーカスがある / 修飾キーあり → スキップ
       if (!brActive) return;
       const tag = document.activeElement?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const inField = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+
+      // 入力中でも効かせたい2つを先に処理する。
+      // C/T を押すとフォームの入力欄に自動フォーカスするため、ここを通さないと
+      //   ・↑↓ で行に戻れない（マウスを使うしかない袋小路になる）
+      //   ・Enter が届かず、バーに書いてある「Save」に到達できない
+      // という状態になる（実機で確認）。
+      if (inField) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          document.activeElement.blur();
+          brHighlight(brLines(), brIdx);   // 行移動に戻す
+          return;
+        }
+        // 素の Enter は Xero 側の候補選択に使われるので奪わない。
+        // 保存は修飾キー付きにして衝突を避ける。
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          brConfirm();
+          return;
+        }
+        return;                            // それ以外は Xero に渡す
+      }
+
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       const lines = brLines();
