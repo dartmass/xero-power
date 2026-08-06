@@ -40,7 +40,7 @@
 </head>
 <body>
   <h1>Privacy Policy — Xero Power</h1>
-  <p><em>Last updated: July 2026</em></p>
+  <p><em>Last updated: August 2026</em></p>
 
   <h2>What Xero Power does</h2>
   <p>
@@ -51,8 +51,8 @@
 
   <h2>Your Xero data</h2>
   <div class="callout">
-    <strong>Your accounting data never leaves your browser.</strong> We do not read, store,
-    transmit, or share your transactions, invoices, bills, contacts, or account balances.
+    <strong>Your accounting data never leaves your browser.</strong> Xero Power does not transmit
+    or share your transactions, invoices, bills, contacts, account balances, or line descriptions.
   </div>
   <ul>
     <li>We do not access your Xero credentials or login information.</li>
@@ -60,28 +60,34 @@
     <li>We do not build a profile of you or your business.</li>
   </ul>
   <p>
-    The extension reads the <strong>structure of Xero web pages</strong> (the HTML DOM) solely
-    to attach keyboard shortcut listeners and draw the command-palette interface. That reading
-    happens locally, in the same way your browser already renders the page.
+    The extension processes the <strong>Xero page currently visible in your browser</strong> to attach
+    shortcuts and provide workflow checks. Features may inspect visible tracking fields, line
+    descriptions, and Awaiting Approval counts locally. Line descriptions and tracking values are
+    not saved. This processing happens entirely on your device.
   </p>
 
   <h2>What is stored, and where</h2>
   <p>
-    Settings are saved with Chrome's local storage API and stay on your own device. Nothing in
-    this list is uploaded anywhere:
+    Settings are saved with Chrome's local storage API and stay on your own device. The license
+    key is sent to Polar for activation and periodic subscription checks as described below;
+    the other stored settings are not uploaded:
   </p>
   <ul>
     <li>Your keyboard shortcut preferences</li>
     <li>A count of how many times you have navigated using the palette (used to show your
         time-saved figure and to order your most-used screens)</li>
     <li>Whether you have dismissed the onboarding notice</li>
-    <li>Your license key, if you have bought Pro</li>
+    <li>Your license key, if you have bought a paid plan</li>
+    <li>Your organisation display names, colour settings, and workspace selections</li>
+    <li>If you enable Awaiting Approval Watch: the latest visible invoice or bill count, the
+        organisation name, the Xero list URL, and the time it was observed. Entries older than
+        30 days are discarded</li>
   </ul>
 
   <h2>When the extension contacts an outside service</h2>
   <p>
-    There are three cases, and each one is triggered by an action you take. Outside of these,
-    the extension makes no network requests.
+    There are five cases. License rechecks happen automatically for paid plans; the other cases
+    are triggered by an action you take. Outside of these, the extension makes no network requests.
   </p>
   <table>
     <tr>
@@ -90,8 +96,19 @@
       <th>To whom</th>
     </tr>
     <tr>
-      <td>You enter a Pro license key and click <strong>Activate</strong></td>
-      <td>The license key you typed, so it can be verified</td>
+      <td>You click <strong>Upgrade</strong> in the extension's settings</td>
+      <td>Polar's checkout page opens in a new tab. Nothing is sent from the extension, and you
+          pay Polar directly — we never see or handle your payment details</td>
+      <td><a href="https://polar.sh/legal/privacy">Polar</a>, our payment provider</td>
+    </tr>
+    <tr>
+      <td>You activate a paid license, when Chrome starts, and approximately once every 24 hours</td>
+      <td>The saved license key, so Polar can confirm the subscription and plan are still active</td>
+      <td><a href="https://polar.sh/legal/privacy">Polar</a>, our payment provider</td>
+    </tr>
+    <tr>
+      <td>You click <strong>Manage subscription</strong></td>
+      <td>Polar's Customer Portal opens in a new tab. You sign in directly with Polar</td>
       <td><a href="https://polar.sh/legal/privacy">Polar</a>, our payment provider</td>
     </tr>
     <tr>
@@ -116,8 +133,12 @@
   <h2>Permissions</h2>
   <ul>
     <li><code>*.xero.com</code> — to add shortcuts and the command palette to Xero pages.</li>
-    <li><code>api.polar.sh</code> — to verify a Pro license key when you activate one.</li>
+    <li><code>api.polar.sh</code> — to activate a paid license and periodically confirm that its
+        subscription and plan are still active.</li>
     <li><code>storage</code> — to save your settings on your own device.</li>
+    <li><code>alarms</code> — to schedule a license check approximately once every 24 hours.</li>
+    <li><code>notifications</code> (optional) — requested only when you enable Awaiting Approval
+        Watch, so Xero Power can show a local notification when a previously seen queue grows.</li>
   </ul>
   <p>No other websites are accessed.</p>
 
