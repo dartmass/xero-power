@@ -8,8 +8,7 @@
  *
  * v0.5.0: 新インボイスの既定ボタンを「Approve & email」→「Approve」に変更。
  *         Product Ideasで440票・Xeroが実装拒否(2026-01)・競合拡張ゼロのwedge。
- * v0.6.0: Bank Rec に確定ショートカット(↵)を追加。Bills対応も試作したが方式が誤りでv0.9.0で作り直し。
- *         r/xero ユーザーリクエスト(Logical_Sea2630)を受けて実装。無料機能。
+ * v0.6.0: Bank Rec に確定ショートカット(↵)を追加。
  * v0.7.0: 初回トースト + welcome.html + background.js（オンボーディング）。
  * v0.7.1: ChromeOS対応の修正。ユーザーの64%がChromeOSで ⌘ キーが存在しないため:
  *         ①パレットキーのPro設定が効いていなかったのを修正(SC.palette未参照 + "k"ハードコード)
@@ -22,8 +21,7 @@
  *         拡張機能で解けるものを実装するシリーズ。
  *         ①組織ごとのナビバー配色(§6.7 / 308票)。複数クライアントを扱う
  *           簿記担当の「間違った組織に入力する」事故を防ぐ。無料2組織/Pro無制限。
- *         ②トラッキング必須化(§6.4 / 287票)。請求書とBillsの両方。事務所のコーディング統一。Pro。
- *         ⑤Bills「Approve & next」ボタン(§6.6)。Xeroに該当オプションが無いため自前で追加。
+ *         ②トラッキング必須化(§6.4 / 287票)。請求書とBillsの両方。事務所のコーディング統一。Practice Pro。
  *         ③ダークモード(§6.8 / 533票)。無料。
  *         ④パレット全28件を実Xeroで検証し直し、**15件が死んでいた**のを修正。
  *           ・レポート7件は reporting.xero.com へ移転（別ホスト）
@@ -31,6 +29,10 @@
  *           ・Bank Reconciliation は accountId 無しだと homepage に飛ばされる
  *           ・New Bill の /app/{orgId}/bills/create は404
  *           検証済みURLのみに入れ替え、Xeroナビから拾った有用な行き先も追加して39件に。
+ *         ⑤Solo Pro tools: organisation workspace launcher, top-of-list page controls,
+ *           and remembered page size.
+ *         ⑥Practice Pro tools: configurable description guardrail, locally observed Awaiting
+ *           Approval queues, and a non-destructive Find & Recode Description index.
  */
 (() => {
   "use strict";
@@ -595,7 +597,7 @@
   const IS_MAC    = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || "");
   const MOD_LABEL = IS_MAC ? "Cmd+" : "Ctrl+";
 
-  // カスタムショートカット（Pro）。ここは常に「実キー1文字（小文字）」を保持する。
+  // カスタムショートカット（Solo Pro以上）。ここは常に「実キー1文字（小文字）」を保持する。
   let SC = { palette: 'k', match: 'm', create: 'c', transfer: 't', discuss: 'd' };
 
   // 表示文字列（"⌘K" / "Ctrl+J" / "J"）から実キー1文字を取り出す
@@ -611,17 +613,33 @@
     SC.create   = parseKey(s.create,   'c');
     SC.transfer = parseKey(s.transfer, 't');
     SC.discuss  = parseKey(s.discuss,  'd');
+    brRenderBar();
   }
 
-  // storageからショートカット設定を読み込む
-  chrome.storage.local.get(['xp_shortcuts'])
-    .then(data => applyShortcuts(data.xp_shortcuts))
+  function shortcutsCanCustomize(data) {
+    if (data?.xp_plan) return data.xp_plan === 'pro' || data.xp_plan === 'practice';
+    return data?.xp_pro === true;
+  }
+
+  // Freeでは保存済み設定を残しつつ、実際の操作は既定キーに戻す。
+  function loadActiveShortcuts() {
+    return chrome.storage.local.get(['xp_shortcuts', 'xp_pro', 'xp_plan'])
+      .then(data => applyShortcuts(shortcutsCanCustomize(data) ? data.xp_shortcuts : null));
+  }
+
+  loadActiveShortcuts()
     .catch(() => {});
 
   // options で変更したらタブ再読込なしで反映
   chrome.storage.onChanged?.addListener((changes, area) => {
-    if (area === "local" && changes.xp_shortcuts) applyShortcuts(changes.xp_shortcuts.newValue);
+    if (
+      area === "local" &&
+      (changes.xp_shortcuts || changes.xp_pro || changes.xp_plan)
+    ) loadActiveShortcuts().catch(() => {});
   });
+
+  // Captured at document_start so Xero page handlers cannot consume Cmd/Ctrl+K first.
+  window.addEventListener("xp-toggle-command-palette", () => togglePalette());
 
   function loadTopPages() {
     if (!chrome?.storage?.local) return Promise.resolve();
@@ -827,7 +845,7 @@
     bar.id = 'xp-upsell-bar';
     bar.innerHTML =
       `<span id="xp-upsell-text">⚡ ${navTotal} navigations · ~${minSaved} min saved</span>` +
-      `<a id="xp-upsell-link">Try Pro →</a>` +
+      `<a id="xp-upsell-link">Try Solo Pro →</a>` +
       `<span id="xp-upsell-dismiss" title="Dismiss">×</span>`;
     footer.before(bar);
 
@@ -877,13 +895,20 @@
   }
 
   function brClickAction(actionClass, actionType) {
-    brLastAction = actionType;
     const lines = brLines();
     const line  = lines[brIdx];
     if (!line) return;
     const btn = line.querySelector(actionClass);
     if (!btn) return;
+    if (actionType !== "match") {
+      brCandMode = false;
+      brCandPendingMove = 0;
+      clearTimeout(brCandTimer);
+      brCandClear();
+    }
+    brLastAction = actionType;
     btn.click();
+    brRenderBar();
     // Create/Transfer後: フォームの最初のinputにフォーカスして即入力できるように
     if (actionType === "create" || actionType === "transfer") {
       setTimeout(() => {
@@ -893,7 +918,7 @@
     }
     // Match後: Xeroが候補を自動提示しない場合は候補リストが出る。
     // そこをキーボードで選べるようにする（出ない場合は何もしない）。
-    if (actionType === "match") setTimeout(brCandEnter, 500);
+    if (actionType === "match") brCandWait();
     brRescan();
   }
 
@@ -913,14 +938,39 @@
   // ─────────────────────────────────────────
   let brCandMode = false;
   let brCandIdx  = 0;
+  let brCandTimer = null;
+  let brCandPendingMove = 0;
 
   function brCandidates() {
     const line = brLines()[brIdx];
-    return line ? [...line.querySelectorAll(".tables .selectList .transaction-row")] : [];
+    if (!line) return [];
+
+    // Xero has shipped both div-based and table-based versions of Find & Match.
+    // Pick the first visible candidate list containing transaction checkboxes.
+    const roots = [
+      ...line.querySelectorAll(".tables .selectList"),
+      ...line.querySelectorAll(".tables"),
+      ...line.querySelectorAll('table,[role="table"]'),
+    ];
+    for (const root of [...new Set(roots)]) {
+      if (!root.getClientRects().length) continue;
+      const rows = [...root.querySelectorAll('.transaction-row,tr,[role="row"]')]
+        .filter((row) => {
+          if (!row.getClientRects().length) return false;
+          const checkbox = row.querySelector('input[type="checkbox"]');
+          if (!checkbox || checkbox.disabled) return false;
+          const text = String(row.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+          if (/^(select all|show (received|.* items only))/.test(text)) return false;
+          return Boolean(row.querySelector("a"));
+        });
+      if (rows.length) return rows;
+    }
+    return [];
   }
 
   function brCandHighlight(cands, idx) {
     cands.forEach((c, i) => {
+      c.dataset.xpBrCandidate = "1";
       c.style.outline      = i === idx ? "2px solid #0a7a4b" : "";
       c.style.background   = i === idx ? "#f0fff8" : "";
       c.style.borderRadius = i === idx ? "4px" : "";
@@ -929,24 +979,38 @@
   }
 
   function brCandClear() {
-    document.querySelectorAll(".tables .selectList .transaction-row").forEach((c) => {
+    document.querySelectorAll('[data-xp-br-candidate]').forEach((c) => {
       c.style.outline = c.style.background = c.style.borderRadius = "";
+      delete c.dataset.xpBrCandidate;
     });
   }
 
   function brCandEnter() {
+    if (brCandMode) return true;
     const cands = brCandidates();
-    if (!cands.length) return false;   // Xeroが候補を提示済み → 通常のOKで足りる
+    if (!cands.length) return false;
     brCandMode = true;
-    brCandIdx  = 0;
-    brCandHighlight(cands, 0);
+    brCandIdx = Math.max(0, Math.min(brCandPendingMove, cands.length - 1));
+    brCandPendingMove = 0;
+    brCandHighlight(cands, brCandIdx);
     brRenderBar();
     return true;
+  }
+
+  function brCandWait(attempt = 0) {
+    clearTimeout(brCandTimer);
+    if (brLastAction !== "match" || brCandEnter() || attempt >= 20) return;
+    brCandTimer = setTimeout(() => brCandWait(attempt + 1), 250);
   }
 
   function brCandExit() {
     if (!brCandMode) return;
     brCandMode = false;
+    // Esc means abandoning this Match attempt and returning to statement rows.
+    // Without clearing this, the next arrow key immediately reopened candidates.
+    brLastAction = null;
+    brCandPendingMove = 0;
+    clearTimeout(brCandTimer);
     brCandClear();
     brHighlight(brLines(), brIdx);
     brRenderBar();
@@ -956,20 +1020,49 @@
     brCandidates()[brCandIdx]?.querySelector('input[type="checkbox"]')?.click();
   }
 
+  function brButtonLabel(el) {
+    return String(
+      el?.getAttribute?.("aria-label") ||
+      el?.getAttribute?.("title") ||
+      el?.value ||
+      el?.textContent ||
+      ""
+    ).replace(/\s+/g, " ").trim().toLowerCase();
+  }
+
+  function brFindButton(line, labels, legacySelector) {
+    const legacy = legacySelector ? line.querySelector(legacySelector) : null;
+    if (legacy?.getClientRects().length) return legacy;
+    return [...line.querySelectorAll('button,a,[role="button"],input[type="button"],input[type="submit"]')]
+      .find((el) => el.getClientRects().length && labels.includes(brButtonLabel(el))) || null;
+  }
+
   function brConfirm() {
     const lines = brLines();
     const line  = lines[brIdx];
-    if (!line) return;
+    if (!line) return false;
+    let button = null;
     if (brLastAction === "match") {
-      line.querySelector("a.okayButton")?.click();
+      button = brFindButton(line, ["reconcile", "ok", "okay"], "a.okayButton");
     } else if (brLastAction === "create" || brLastAction === "transfer") {
-      line.querySelector("button.save-button")?.click();
+      // Current Xero labels both Create and Transfer confirmation as "OK".
+      // Keep the old Save selector for organisations still on the previous UI.
+      button = brFindButton(
+        line,
+        ["ok", "okay", "save"],
+        "button.save-button,a.okayButton,button.okayButton"
+      );
     }
+    if (!button || button.disabled || button.getAttribute("aria-disabled") === "true") return false;
+    button.click();
     brLastAction = null;
     brCandMode   = false;
+    brCandPendingMove = 0;
+    clearTimeout(brCandTimer);
     brCandClear();
     brRenderBar();
     brRescan();
+    return true;
   }
 
   // ⚠️ キー表記は記号ではなく単語で書く。⌘ や ↵ はMacのキーボードにしか
@@ -999,6 +1092,11 @@
     if (!bar) return;
     const K = (k, label) =>
       `<span><b style='background:rgba(255,255,255,.25);border-radius:3px;padding:1px 5px'>${k}</b> ${label}</span>`;
+    const actionHints = brLastAction === "create"
+      ? [K(MOD_LABEL + "Enter", "Save")]
+      : brLastAction === "transfer"
+        ? [K("Enter", "Save")]
+        : [K("Enter", "confirm"), K(MOD_LABEL + "Enter", "Save")];
 
     bar.innerHTML = brCandMode
       ? [
@@ -1006,19 +1104,17 @@
           "<span style='opacity:.85'>Choosing a match</span>",
           K("↑↓", "move"),
           K("Space", "select"),
-          K("Enter", "OK"),
+          K("Enter", "Reconcile"),
           K("Esc", "back to rows"),
         ].join("")
       : [
           "<strong>Xero Power</strong>",
           K("↑↓", "navigate"),
-          K("M", "Match"),
-          K("C", "Create"),
-          K("T", "Transfer"),
-          K("D", "Discuss"),
-          K("Enter", "OK"),
-          // C/T のフォームでは素のEnterをXeroが候補選択に使うので修飾キー付き
-          K(MOD_LABEL + "Enter", "Save"),
+          K(SC.match.toUpperCase(), "Match"),
+          K(SC.create.toUpperCase(), "Create"),
+          K(SC.transfer.toUpperCase(), "Transfer"),
+          K(SC.discuss.toUpperCase(), "Discuss"),
+          ...actionHints,
           K("Esc", "back to rows"),
         ].join("");
   }
@@ -1026,6 +1122,8 @@
   function brTeardown() {
     brActive = false;
     brCandMode = false;
+    brCandPendingMove = 0;
+    clearTimeout(brCandTimer);
     brCandClear();
     document.getElementById("xp-br-bar")?.remove();
     brLines().forEach((l) => {
@@ -1042,7 +1140,11 @@
     brShowBar();
     const lines = brLines();
     if (lines.length) brHighlight(lines, 0);
-    console.log("%c[Xero Power] Bank Rec shortcuts ✅  ↑↓ M C T D", "color:#0a7a4b;font-weight:bold");
+    console.log(
+      `%c[Xero Power] Bank Rec shortcuts ✅  ↑↓ ${SC.match.toUpperCase()} ` +
+      `${SC.create.toUpperCase()} ${SC.transfer.toUpperCase()} ${SC.discuss.toUpperCase()}`,
+      "color:#0a7a4b;font-weight:bold"
+    );
   }
 
   // ─────────────────────────────────────────
@@ -1052,8 +1154,10 @@
     "keydown",
     (e) => {
       // ── ⌘K / Ctrl+K：パレット開閉（最優先）──
-      // SC.palette は options で変更可（Pro）。ChromeOS の検索キーも metaKey を発火する。
-      if ((e.metaKey || e.ctrlKey) && (e.key || "").toLowerCase() === SC.palette) {
+      // SC.palette は options で変更可（Solo Pro以上）。ChromeOS の検索キーも metaKey を発火する。
+      const paletteKeyMatches = (e.key || "").toLowerCase() === SC.palette ||
+        e.code === `Key${SC.palette.toUpperCase()}`;
+      if ((e.metaKey || e.ctrlKey) && paletteKeyMatches) {
         e.preventDefault();
         e.stopPropagation();
         togglePalette();
@@ -1101,6 +1205,26 @@
       // ── Match の候補選択中 ──
       // 候補リストが出ている間は ↑↓ を候補の移動に使う。
       // M/C/T/D は下の通常処理へ落として、アクションを選び直せるようにする。
+      // 非同期表示が遅かった場合も、次のキー操作時に候補を取り直す。
+      if (brLastAction === "match" && !brCandMode && !brCandEnter()) {
+        // Find & Match is rendered asynchronously. Keep early arrow presses for
+        // the candidate list instead of accidentally moving to another statement row.
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          brCandPendingMove += e.key === "ArrowDown" ? 1 : -1;
+          brCandPendingMove = Math.max(0, brCandPendingMove);
+          brCandWait();
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          brLastAction = null;
+          brCandPendingMove = 0;
+          clearTimeout(brCandTimer);
+          brRenderBar();
+          return;
+        }
+      }
       if (brCandMode) {
         const cands = brCandidates();
         if (!cands.length) {
@@ -1155,7 +1279,7 @@
   );
 
   // ─────────────────────────────────────────
-  // 6.4 トラッキング必須化（Pro）
+  // 6.4 承認前コーディングガードレール（Practice Pro）
   //   背景: Xero Product Ideas で287票、Xeroは「開発予定なし」と明言。
   //   事務所では担当者ごとにコーディングがバラつくのが決算時の手戻りになる。
   //   トラッキング未入力の行があるまま Approve できないようにする。
@@ -1182,10 +1306,13 @@
   // ① 新インボイス側
   const TK_INV_ROW   = "tbody tr";
   const TK_INV_TRACK = '[data-automationid*="tracking-"][data-automationid$="--search-field--input"]';
+  const TK_INV_DESC = [
+    '[data-automationid*="description"] textarea',
+    '[data-automationid*="description"] input',
+  ];
   const TK_INV_CONTENT = [
     '[data-automationid*="description"] input',
     '[data-automationid*="description"] textarea',
-    '[data-automationid*="quantity"] input',
     '[data-automationid*="unitAmount"] input',
     '[data-automationid*="account"][data-automationid$="--search-field--input"]',
   ];
@@ -1193,28 +1320,41 @@
   // ② Bills側
   const TK_BILL_ROW   = ".x-grid3-row";
   const TK_BILL_TRACK = '[class*="x-grid3-td-colTracking"]';
+  const TK_BILL_DESC = [".x-grid3-td-colDescription"];
   const TK_BILL_CONTENT = [
     ".x-grid3-td-colDescription",
-    ".x-grid3-td-colQuantity",
     ".x-grid3-td-colUnitPrice",
     ".x-grid3-td-colAccount",
-    ".x-grid3-td-colLineAmount",
   ];
 
-  let tkEnabled = false;  // xp_require_tracking（既定OFF・Pro）
-  let tkPro     = false;
+  let tkEnabled  = false;  // xp_require_tracking（既定OFF・Practice Pro）
+  let descEnabled = false; // xp_require_description（既定OFF・Practice Pro）
+  let tkPractice = false;
+
+  function tkCanUse(data) {
+    // 旧Pro互換: xp_plan 導入前の有料ユーザーは$44.99のPractice Proとして扱う。
+    if (data?.xp_plan) return data.xp_plan === "practice";
+    return data?.xp_pro === true;
+  }
 
   if (chrome?.storage?.local) {
-    chrome.storage.local.get(["xp_require_tracking", "xp_pro"]).then((d) => {
-      tkEnabled = d.xp_require_tracking === true;
-      tkPro     = d.xp_pro === true;
+    chrome.storage.local.get(["xp_require_tracking", "xp_require_description", "xp_pro", "xp_plan"]).then((d) => {
+      tkEnabled  = d.xp_require_tracking === true;
+      descEnabled = d.xp_require_description === true;
+      tkPractice = tkCanUse(d);
     }).catch(() => {});
 
     chrome.storage.onChanged.addListener((c, area) => {
       if (area !== "local") return;
       if (c.xp_require_tracking) tkEnabled = c.xp_require_tracking.newValue === true;
-      if (c.xp_pro)              tkPro     = c.xp_pro.newValue === true;
-      if (!tkEnabled || !tkPro) tkClearMarks();
+      if (c.xp_require_description) descEnabled = c.xp_require_description.newValue === true;
+      if (c.xp_pro || c.xp_plan) {
+        tkPractice = tkCanUse({
+          xp_pro: c.xp_pro?.newValue,
+          xp_plan: c.xp_plan?.newValue,
+        });
+      }
+      if ((!tkEnabled && !descEnabled) || !tkPractice) tkClearMarks();
     });
   }
 
@@ -1255,6 +1395,22 @@
     });
   }
 
+  function descMissingRows() {
+    const kind = tkPageKind();
+    if (!kind) return [];
+
+    const cfg = kind === "invoice"
+      ? { row: TK_INV_ROW, desc: TK_INV_DESC, content: TK_INV_CONTENT, read: tkVal }
+      : { row: TK_BILL_ROW, desc: TK_BILL_DESC, content: TK_BILL_CONTENT, read: tkText };
+
+    return [...document.querySelectorAll(cfg.row)].filter((row) => {
+      if (!tkRowHasContent(row, cfg.content, cfg.read)) return false;
+      const description = cfg.desc.map((selector) => row.querySelector(selector)).find(Boolean);
+      if (!description) return false;
+      return cfg.read(description) === "";
+    });
+  }
+
   function tkClearMarks() {
     document.querySelectorAll("[data-xp-tk-mark]").forEach((el) => {
       el.style.outline = "";
@@ -1264,13 +1420,14 @@
     document.getElementById("xp-tk-warning")?.remove();
   }
 
-  function tkMark(rows) {
+  function tkMark(trackingRows, descriptionRows) {
     tkClearMarks();
     const kind = tkPageKind();
     const track = kind === "invoice" ? TK_INV_TRACK : TK_BILL_TRACK;
     const read  = kind === "invoice" ? tkVal : tkText;
+    const description = kind === "invoice" ? TK_INV_DESC : TK_BILL_DESC;
 
-    rows.forEach((row) => {
+    trackingRows.forEach((row) => {
       row.querySelectorAll(track).forEach((c) => {
         if (read(c) !== "") return;
         const cell = c.closest("td") || c;
@@ -1278,6 +1435,15 @@
         cell.style.borderRadius = "3px";
         cell.dataset.xpTkMark = "1";
       });
+    });
+
+    descriptionRows.forEach((row) => {
+      const field = description.map((selector) => row.querySelector(selector)).find(Boolean);
+      if (!field || read(field) !== "") return;
+      const cell = field.closest("td") || field;
+      cell.style.outline = "2px solid #dc2626";
+      cell.style.borderRadius = "3px";
+      cell.dataset.xpTkMark = "1";
     });
 
     const bar = document.createElement("div");
@@ -1290,14 +1456,18 @@
       "font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
       "box-shadow:0 8px 24px rgba(0,0,0,.15)", "max-width:520px",
     ].join(";");
-    const n = rows.length;
-    bar.textContent =
-      `${n} line${n > 1 ? "s" : ""} still need a tracking category. ` +
-      `Your practice requires one on every line before approving.`;
+    const messages = [];
+    if (trackingRows.length) {
+      messages.push(`${trackingRows.length} line${trackingRows.length > 1 ? "s" : ""} need tracking`);
+    }
+    if (descriptionRows.length) {
+      messages.push(`${descriptionRows.length} line${descriptionRows.length > 1 ? "s" : ""} need a description`);
+    }
+    bar.textContent = `${messages.join("; ")}. Complete the highlighted fields before approving.`;
     document.body.appendChild(bar);
     setTimeout(() => bar.remove(), 6000);
 
-    rows[0]?.scrollIntoView({ block: "center", behavior: "smooth" });
+    (trackingRows[0] || descriptionRows[0])?.scrollIntoView({ block: "center", behavior: "smooth" });
   }
 
   // 承認系のクリックか判定。下書き保存は止めない（作業を人質に取らない）。
@@ -1325,17 +1495,21 @@
   window.addEventListener(
     "click",
     (e) => {
-      if (!tkEnabled || !tkPro) return;
+      if ((!tkEnabled && !descEnabled) || !tkPractice) return;
       if (!tkPageKind()) return;
       if (!tkIsApproveClick(e.target)) return;
 
-      const missing = tkMissingRows();
-      if (!missing.length) return;         // 問題なし → 通常の承認へ流す
+      const missingTracking = tkEnabled ? tkMissingRows() : [];
+      const missingDescriptions = descEnabled ? descMissingRows() : [];
+      if (!missingTracking.length && !missingDescriptions.length) return;
 
       e.preventDefault();
       e.stopImmediatePropagation();
-      tkMark(missing);
-      console.warn(`[Xero Power] Approval blocked — ${missing.length} line(s) missing a tracking category.`);
+      tkMark(missingTracking, missingDescriptions);
+      console.warn(
+        `[Xero Power] Approval blocked — ${missingTracking.length} tracking and ` +
+        `${missingDescriptions.length} description issue(s).`
+      );
     },
     true
   );
@@ -1354,6 +1528,8 @@
   //   一切触れない（安全側）。ラベルも「Approve」に張り替えるので "見たまま実行"。
   // ─────────────────────────────────────────
   let iaEnabled = true; // xp_invoice_approve_default（既定ON・無料）
+  let iaEmailPassthrough = false;
+  let iaPlainApprovePassthrough = false;
 
   if (chrome?.storage?.local) {
     chrome.storage.local.get(["xp_invoice_approve_default"]).then((d) => {
@@ -1433,14 +1609,26 @@
 
   function iaRestore() {
     const primary = document.querySelector('button[data-xp-approve="1"]');
-    if (!primary) return;
-    if (primary.dataset.xpOrigLabel) iaSetLabel(primary, primary.dataset.xpOrigLabel);
-    delete primary.dataset.xpApprove;
-    primary.title = "";
+    if (primary) {
+      if (primary.dataset.xpOrigLabel) iaSetLabel(primary, primary.dataset.xpOrigLabel);
+      delete primary.dataset.xpApprove;
+      primary.title = "";
+    }
+    document.querySelectorAll('[data-xp-approve-email="1"]').forEach((el) => {
+      iaRelabelApproveOption(el, false);
+      delete el.dataset.xpApproveEmail;
+    });
   }
 
   // クリックを乗っ取り、ドロップダウンの「Approve」を代理クリック
   function iaRunApprove(primary) {
+    const swapped = document.querySelector('[data-xp-approve-email="1"]');
+    if (swapped) {
+      iaPlainApprovePassthrough = true;
+      swapped.click();
+      queueMicrotask(() => { iaPlainApprovePassthrough = false; });
+      return;
+    }
     const caret = iaFindCaret(primary);
     if (!caret) return;
     caret.click(); // メニューを開く
@@ -1457,8 +1645,82 @@
     return t.startsWith("approve") && !t.startsWith("approve &") && !t.startsWith("approve and");
   }
 
+  function iaRunApproveEmail(primary) {
+    if (
+      !primary?.isConnected ||
+      primary.disabled ||
+      primary.getAttribute("aria-disabled") === "true"
+    ) return;
+    iaSetLabel(primary, primary.dataset.xpOrigLabel || "Approve & email");
+    iaEmailPassthrough = true;
+    primary.click();
+    queueMicrotask(() => {
+      iaEmailPassthrough = false;
+      if (primary.isConnected && primary.dataset.xpApprove === "1") iaSetLabel(primary, "Approve");
+    });
+  }
+
+  function iaRelabelApproveOption(option, emailMode) {
+    const walker = document.createTreeWalker(option, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    const label = emailMode
+      ? nodes.find((node) => iaNorm(node.textContent) === "approve")
+      : nodes.find((node) => /^approve\s*(?:&|and)\s*email$/i.test(iaNorm(node.textContent)));
+    if (!label) return false;
+    label.textContent = emailMode ? "Approve & email" : "Approve";
+
+    const shortcut = nodes.find((node) => /(?:cmd|ctrl).*(?:opt|alt).*[ae]/i.test(node.textContent));
+    if (shortcut) {
+      shortcut.textContent = emailMode
+        ? (IS_MAC ? "Cmd-Opt-E" : "Ctrl-Alt-E")
+        : (IS_MAC ? "Cmd-Opt-A" : "Ctrl-Alt-A");
+    }
+    return true;
+  }
+
+  // Xero's dropdown omits the current primary action. Reuse its existing Approve
+  // row as Approve & email so the React-managed list keeps its native geometry.
+  function iaEnsureEmailOption(primary, attempt = 0) {
+    if (!primary?.isConnected || !iaEnabled) return;
+    if (document.querySelector('[data-xp-approve-email="1"]')) return;
+    const plain = [...document.querySelectorAll('[role="option"],[role="menuitem"]')]
+      .find((el) => iaIsPlainApprove(el, primary));
+    if (!plain) {
+      if (attempt < 10) setTimeout(() => iaEnsureEmailOption(primary, attempt + 1), 60);
+      return;
+    }
+
+    if (!iaRelabelApproveOption(plain, true)) return;
+    plain.dataset.xpApproveEmail = "1";
+    plain.addEventListener("click", (event) => {
+      if (!iaEnabled) return;
+      if (iaPlainApprovePassthrough) {
+        iaPlainApprovePassthrough = false;
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      iaRunApproveEmail(primary);
+    }, true);
+    plain.addEventListener("keydown", (event) => {
+      if (!iaEnabled) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      iaRunApproveEmail(primary);
+    }, true);
+  }
+
   function iaWaitApprove(attempt) {
     const self = document.querySelector('button[data-xp-approve="1"]');
+    const swapped = document.querySelector('[data-xp-approve-email="1"]');
+    if (swapped) {
+      iaPlainApprovePassthrough = true;
+      swapped.click();
+      queueMicrotask(() => { iaPlainApprovePassthrough = false; });
+      return;
+    }
     // listbox/menu の項目を優先、無ければ button/a にフォールバック
     const item =
       [...document.querySelectorAll('[role="option"],[role="menuitem"]')].find((el) => iaIsPlainApprove(el, self)) ||
@@ -1495,185 +1757,25 @@
     (e) => {
       if (!iaEnabled) return;
       const btn = e.target.closest?.('button[data-xp-approve="1"]');
-      if (!btn) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      iaRunApprove(btn);
+      if (btn) {
+        if (iaEmailPassthrough) {
+          iaEmailPassthrough = false;
+          return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        iaRunApprove(btn);
+        return;
+      }
+
+      const primary = document.querySelector('button[data-xp-approve="1"]');
+      const caret = iaFindCaret(primary);
+      if (caret && (e.target === caret || caret.contains(e.target))) {
+        setTimeout(() => iaEnsureEmailOption(primary), 0);
+      }
     },
     true
   );
-
-  // ─────────────────────────────────────────
-  // 6.6 Bills：「Approve & next」ボタン（無料）
-  //   要望: Logical_Sea2630 (r/xero 2026-06-30)
-  //   「Billを承認したら一覧に戻らず、次のBillへ進みたい」
-  //
-  //   ⚠️ v0.6.0では Xero の ▾ にある「Approve and view next」を既定にする方式で
-  //      実装したが、実機で確認したところ Bills の ▾ の中身は
-  //      「Approve」と「Approve & add another」の2つだけで、
-  //      **「Approve and view next」というオプションは存在しない**。
-  //      既定を差し替える方式では実現不可能だったので、ボタンごと自前で足す方式に変更した。
-  //
-  //   仕組み（実機で確認した事実に基づく）:
-  //     ①Bills一覧の各行が /app/{orgId}/bills/view/bill?id={guid} を持つ
-  //       → 表示順のキューが作れる
-  //     ②Bill編集画面は /AccountsPayable/Edit.aspx?InvoiceID={guid}
-  //     ③承認は a.words「Approve」を代理クリックすればよい
-  //
-  //   承認後にXeroがどこへ着地するかは意図的に前提にしていない。
-  //   「次のID」を先に控えておき、遷移後にそこへ飛ぶ作りなので、
-  //   Xero側の着地先が変わっても壊れない。
-  // ─────────────────────────────────────────
-  let baEnabled = true;   // xp_bill_approve_view_next（既定ON・無料）
-  let baQueue   = null;   // { org, ids: [...] }
-
-  if (chrome?.storage?.local) {
-    chrome.storage.local.get(["xp_bill_approve_view_next", "xp_bill_queue"]).then((d) => {
-      baEnabled = d.xp_bill_approve_view_next !== false;
-      baQueue   = d.xp_bill_queue || null;
-      baBoot();
-    }).catch(() => {});
-
-    chrome.storage.onChanged.addListener((c, area) => {
-      if (area !== "local") return;
-      if (c.xp_bill_approve_view_next) {
-        baEnabled = c.xp_bill_approve_view_next.newValue !== false;
-        if (!baEnabled) document.getElementById("xp-ba-next")?.remove();
-        else baBoot();
-      }
-      if (c.xp_bill_queue) baQueue = c.xp_bill_queue.newValue || null;
-    });
-  }
-
-  function baOrg() { return ocOrgId(); }
-
-  // ── ①一覧ページ: 表示順のBill IDをキューとして保存 ──
-  function baIsListPage() {
-    return /\/bills\/list\//i.test(location.pathname);
-  }
-
-  function baCaptureQueue() {
-    const ids = [];
-    document.querySelectorAll('a[href*="/bills/view/bill"]').forEach((a) => {
-      let id;
-      try { id = new URL(a.href, location.origin).searchParams.get("id"); } catch { return; }
-      if (id && !ids.includes(id)) ids.push(id);
-    });
-    if (!ids.length) return;
-    baQueue = { org: baOrg(), ids };
-    chrome.storage?.local?.set({ xp_bill_queue: baQueue });
-  }
-
-  // ── ②編集ページ: 自前ボタンを足す ──
-  function baIsEditPage() {
-    return /accountspayable\/edit/i.test(location.pathname);
-  }
-
-  function baCurrentId() {
-    // View.aspx は invoiceID、Edit.aspx は InvoiceID と大小が揺れるので総当たり
-    const q = new URLSearchParams(location.search);
-    for (const [k, v] of q) if (/^invoiceid$/i.test(k)) return v;
-    return null;
-  }
-
-  function baNextId() {
-    const cur = baCurrentId();
-    if (!cur || !baQueue || baQueue.org !== baOrg()) return null;
-    const i = baQueue.ids.indexOf(cur);
-    if (i < 0 || i + 1 >= baQueue.ids.length) return null;
-    return baQueue.ids[i + 1];
-  }
-
-  function baApproveLink() {
-    return [...document.querySelectorAll("a")]
-      .find((a) => a.offsetParent && (a.textContent || "").trim() === "Approve") || null;
-  }
-
-  function baEditUrl(id) {
-    return "https://go.xero.com/AccountsPayable/Edit.aspx?InvoiceID=" + encodeURIComponent(id);
-  }
-
-  function baInjectButton() {
-    if (!baEnabled || document.getElementById("xp-ba-next")) return;
-    const approve = baApproveLink();
-    if (!approve) return;
-    const next = baNextId();
-    if (!next) return;              // 一覧を経由していない／最後の1件なら出さない
-
-    const btn = document.createElement("button");
-    btn.id = "xp-ba-next";
-    btn.type = "button";
-    btn.textContent = "Approve & next";
-    btn.title = "Approve this bill, then open the next one from the list (Xero Power)";
-    // ⚠️ このフッターは全て float で組まれている。素直に挿すと Approve に重なり、
-    //    押し間違いが起きる（実機で確認済み）。float:right を付けて
-    //    #approveBttn の直後に挿すと Approve の左隣に収まる。
-    btn.style.cssText = [
-      "float:right", "margin:0 8px 0 0", "padding:5px 14px", "border-radius:4px",
-      "border:1px solid #0a7a4b", "background:#0a7a4b", "color:#fff",
-      "font:13px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
-      "cursor:pointer",
-    ].join(";");
-
-    btn.addEventListener("click", async (e) => {
-      e.preventDefault();
-
-      // 先に「次」を控える。ページ遷移後にこれを見て飛ぶ。
-      // ⚠️ ここは best-effort。storageが失敗しても承認は必ず実行する。
-      //    await で例外を投げると、押しても何も起きないボタンになる。
-      try {
-        await chrome.storage?.local?.set({
-          xp_bill_pending: { org: baOrg(), approving: baCurrentId(), next },
-        });
-      } catch {
-        /* 次へは進めないが、承認そのものは通す */
-      }
-
-      // 本物の Approve を叩く。トラッキング必須化(§6.4)が止めた場合は
-      // dispatchEvent が false を返すので、控えを取り消す。
-      const ok = approve.dispatchEvent(
-        new MouseEvent("click", { bubbles: true, cancelable: true })
-      );
-      if (!ok) chrome.storage?.local?.remove("xp_bill_pending")?.catch?.(() => {});
-    });
-
-    const group = approve.closest("#approveBttn") || approve.closest(".float-right") || approve.parentElement;
-    group.insertAdjacentElement("afterend", btn);
-  }
-
-  // ── ③遷移後: 控えていた「次」へ飛ぶ ──
-  function baFollowPending() {
-    if (!chrome?.storage?.local) return;
-    chrome.storage.local.get(["xp_bill_pending"]).then((d) => {
-      const p = d.xp_bill_pending;
-      if (!p) return;
-
-      // まだ同じBillの編集画面にいる = 承認が通っていない（検証で止められた等）。
-      // 勝手に次へ飛ばすと入力が失われるので、控えを捨てて何もしない。
-      if (baIsEditPage() && baCurrentId() === p.approving) {
-        chrome.storage.local.remove("xp_bill_pending");
-        return;
-      }
-      chrome.storage.local.remove("xp_bill_pending");
-      if (p.next && p.org === baOrg()) location.href = baEditUrl(p.next);
-    }).catch(() => {});
-  }
-
-  function baBoot() {
-    if (baIsListPage()) baCaptureQueue();
-    if (baIsEditPage()) baInjectButton();
-  }
-
-  // 一覧も編集画面も後から描画されるのでObserverで拾う（debounce）
-  let baPending = false;
-  const baObserver = new MutationObserver(() => {
-    if (baPending) return;
-    baPending = true;
-    requestAnimationFrame(() => { baPending = false; if (baEnabled) baBoot(); });
-  });
-  if (document.body) baObserver.observe(document.body, { childList: true, subtree: true });
-
-  baFollowPending();
 
   // ─────────────────────────────────────────
   // 6.7 組織ごとのナビバー配色
@@ -1722,6 +1824,85 @@
     return document.querySelector(".x-nav--tenant-menu-button-text")?.textContent.trim() || null;
   }
 
+  function ocOrgIdFromHref(href) {
+    try {
+      const path = new URL(href, location.origin).pathname;
+      return path.match(/^\/app\/(![A-Za-z0-9_-]+)(?:\/|$)/)?.[1] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function ocNameFromLink(link, id) {
+    const preferred = link.querySelector(
+      '[data-automationid*="tenant-name"], [class*="tenant-name"], [class*="organisation-name"]'
+    );
+    const name = (preferred?.textContent || link.textContent || "")
+      .replace(/\s+/g, " ")
+      .trim();
+    return name && name.length <= 120 ? name : id;
+  }
+
+  function ocCollectOrganisations() {
+    const organisations = new Map();
+    const currentId = ocOrgId();
+    const currentName = ocOrgName();
+    if (currentId) organisations.set(currentId, currentName || currentId);
+
+    document.querySelectorAll('a[href*="/app/!"]').forEach((link) => {
+      const id = ocOrgIdFromHref(link.getAttribute("href"));
+      if (!id || id === currentId) return;
+      organisations.set(id, ocNameFromLink(link, id));
+    });
+
+    return [...organisations].map(([id, name]) => ({ id, name }));
+  }
+
+  let ocDiscoveryFingerprint = "";
+  async function ocDiscoverOrganisations({ force = false } = {}) {
+    const organisations = ocCollectOrganisations();
+    const fingerprint = JSON.stringify(organisations.sort((a, b) => a.id.localeCompare(b.id)));
+    if (!force && fingerprint === ocDiscoveryFingerprint) {
+      return { found: organisations.length, added: 0 };
+    }
+    ocDiscoveryFingerprint = fingerprint;
+    try {
+      const result = await chrome.runtime.sendMessage({
+        type: "xp-register-organisations",
+        organisations,
+      });
+      return { found: organisations.length, added: result?.added || 0 };
+    } catch {
+      return { found: organisations.length, added: 0 };
+    }
+  }
+
+  function ocTenantMenuButton() {
+    const label = document.querySelector(".x-nav--tenant-menu-button-text");
+    return label?.closest("button, [role=button]") || null;
+  }
+
+  async function ocRefreshOrganisations() {
+    const button = ocTenantMenuButton();
+    const wasExpanded = button?.getAttribute("aria-expanded") === "true";
+    let opened = false;
+
+    if (button && !wasExpanded) {
+      button.click();
+      opened = true;
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    let result = await ocDiscoverOrganisations({ force: true });
+    for (let attempt = 0; button && result.found <= 1 && attempt < 4; attempt += 1) {
+      await new Promise(resolve => setTimeout(resolve, 250));
+      result = await ocDiscoverOrganisations({ force: true });
+    }
+
+    if (opened) button.click();
+    return result;
+  }
+
   // 色を適用してよい組織か（無料枠の判定）
   function ocAllowed(orgId) {
     if (ocIsPro) return true;
@@ -1768,8 +1949,7 @@
     const name = ocOrgName();
     const known = ocOrgs[id];
     if (!known || (name && known.name !== name)) {
-      ocOrgs[id] = { name: name || known?.name || id, color: known?.color || null };
-      chrome.storage?.local?.set({ xp_org_colors: ocOrgs })?.catch?.(() => {});
+      ocDiscoverOrganisations({ force: true });
     }
 
     const color = ocOrgs[id]?.color;
@@ -1797,9 +1977,21 @@
   const ocObserver = new MutationObserver(() => {
     if (ocPending) return;
     ocPending = true;
-    requestAnimationFrame(() => { ocPending = false; ocApply(); });
+    requestAnimationFrame(() => {
+      ocPending = false;
+      ocApply();
+      ocDiscoverOrganisations();
+    });
   });
   if (document.body) ocObserver.observe(document.body, { childList: true, subtree: true });
+
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type !== "xp-discover-organisations") return false;
+    ocRefreshOrganisations()
+      .then(result => sendResponse({ ok: true, ...result }))
+      .catch(() => sendResponse({ ok: false, found: 0, added: 0 }));
+    return true;
+  });
 
   // ─────────────────────────────────────────
   // 6.8 ダークモード（無料）
@@ -1829,8 +2021,22 @@
     html.xp-dark #xp-backdrop,
     html.xp-dark #xp-toast,
     html.xp-dark #xp-tk-warning,
-    html.xp-dark #xp-org-strip {
+    html.xp-dark #xp-org-strip,
+    html.xp-dark #xp-top-pagination,
+    html.xp-dark #xp-recode-index {
       filter: invert(1) hue-rotate(180deg);
+    }
+    html.xp-dark #wac-top-panel {
+      z-index: 2147483000 !important;
+      overflow: visible !important;
+    }
+    html.xp-dark #wac-top-panel svg,
+    html.xp-dark #wac-top-panel img {
+      filter: none;
+    }
+    html.xp-dark [class*="tenant-menu"],
+    html.xp-dark [data-automationid*="tenant-menu"] {
+      z-index: 2147483001 !important;
     }
   `;
 
@@ -1853,6 +2059,734 @@
       if (area === "local" && c.xp_dark_mode) dmApply(c.xp_dark_mode.newValue === true);
     });
   }
+
+  // ─────────────────────────────────────────
+  // 6.9 Solo Pro tools
+  //   Freeの既存機能は動かさず、Solo Pro / Practice Proに追加する作業効率化。
+  //   Xeroの既存操作を代理する機能は、対象を明確に特定できた場合だけ動かす。
+  // ─────────────────────────────────────────
+  const SOLO_PREF_DEFAULTS = {
+    topPagination: true,
+    rememberPageSize: true,
+  };
+
+  let soloPaid = false;
+  let soloPrefs = { ...SOLO_PREF_DEFAULTS };
+  let soloPageSizes = {};
+
+  const SOLO_CSS = `
+    #xp-top-pagination {
+      display: flex; align-items: center; justify-content: flex-end; gap: 4px;
+      min-height: 38px; margin: 0 0 10px; padding: 5px 8px;
+      border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    #xp-top-pagination button {
+      min-width: 30px; height: 28px; padding: 0 8px;
+      border: 1px solid #cbd5e1; border-radius: 4px;
+      background: #fff; color: #334155; cursor: pointer;
+      font: 500 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      letter-spacing: 0;
+    }
+    #xp-top-pagination button:hover:not(:disabled) { border-color: #0a7a4b; color: #0a7a4b; }
+    #xp-top-pagination button[aria-current="page"] { background: #0a7a4b; border-color: #0a7a4b; color: #fff; }
+    #xp-top-pagination button:disabled { opacity: .4; cursor: not-allowed; }
+  `;
+
+  function soloCanUse(data) {
+    if (data?.xp_plan) return data.xp_plan === "pro" || data.xp_plan === "practice";
+    return data?.xp_pro === true;
+  }
+
+  function soloVisible(el) {
+    if (!el || el.closest?.("#xp-top-pagination")) return false;
+    const style = getComputedStyle(el);
+    return el.getClientRects().length > 0 && style.display !== "none" && style.visibility !== "hidden";
+  }
+
+  function soloNorm(value) {
+    return String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+  }
+
+  function soloLabel(el) {
+    return soloNorm(
+      el?.getAttribute?.("aria-label") ||
+      el?.getAttribute?.("title") ||
+      el?.textContent
+    );
+  }
+
+  function soloEnsureStyle() {
+    if (document.getElementById("xp-solo-styles")) return;
+    const style = document.createElement("style");
+    style.id = "xp-solo-styles";
+    style.textContent = SOLO_CSS;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  // ── Top-of-list page controls ─────────────
+  function soloIsPagerAction(label) {
+    return /^(go to )?(first|previous|prev|next|last)( page)?$/.test(label) || /^[‹›«»←→]+$/.test(label);
+  }
+
+  function soloPagerControls(root) {
+    return [...root.querySelectorAll("button,a")].filter((el) => {
+      if (!soloVisible(el)) return false;
+      const label = soloLabel(el);
+      return soloIsPagerAction(label) || /^\d{1,4}$/.test(label);
+    });
+  }
+
+  function soloFindPager() {
+    const actions = [...document.querySelectorAll("button,a")]
+      .filter((el) => soloVisible(el) && soloIsPagerAction(soloLabel(el)))
+      .sort((a, b) => b.getBoundingClientRect().top - a.getBoundingClientRect().top);
+    for (const action of actions) {
+      let root = action.parentElement;
+      for (let depth = 0; root && depth < 5; depth += 1, root = root.parentElement) {
+        const controls = soloPagerControls(root);
+        if (controls.length >= 2 && controls.length <= 20) return { root, controls };
+      }
+    }
+    return null;
+  }
+
+  function soloPagerTarget(pagerRoot) {
+    const pagerTop = pagerRoot.getBoundingClientRect().top + window.scrollY;
+    const candidates = [...document.querySelectorAll('table,[role="table"],#statementLines,.x-grid3')]
+      .filter((el) => {
+        if (!soloVisible(el)) return false;
+        const rect = el.getBoundingClientRect();
+        const bottom = rect.bottom + window.scrollY;
+        return rect.height > 80 && bottom <= pagerTop + 24;
+      })
+      .sort((a, b) => b.getBoundingClientRect().bottom - a.getBoundingClientRect().bottom);
+    return candidates[0] || null;
+  }
+
+  function soloApplyTopPagination() {
+    const existing = document.getElementById("xp-top-pagination");
+    if (!soloPaid || !soloPrefs.topPagination) {
+      existing?.remove();
+      return;
+    }
+
+    const pager = soloFindPager();
+    if (!pager || pager.root.closest("#xp-top-pagination")) {
+      existing?.remove();
+      return;
+    }
+
+    const signature = pager.controls.map((el) => [
+      soloLabel(el),
+      el.disabled || el.getAttribute("aria-disabled") === "true" ? "0" : "1",
+      el.getAttribute("aria-current") || "",
+    ].join(":")).join("|");
+    if (existing?.dataset.signature === signature) return;
+    existing?.remove();
+
+    const target = soloPagerTarget(pager.root);
+    if (!target?.parentElement) return;
+
+    const bar = document.createElement("div");
+    bar.id = "xp-top-pagination";
+    bar.dataset.signature = signature;
+    bar.setAttribute("aria-label", "Xero Power page navigation");
+
+    pager.controls.forEach((original) => {
+      const button = document.createElement("button");
+      const label = soloLabel(original);
+      button.type = "button";
+      button.textContent = original.textContent.trim() || original.getAttribute("aria-label") || label;
+      button.title = `Go to ${label}`;
+      button.disabled = original.disabled || original.getAttribute("aria-disabled") === "true";
+      if (original.getAttribute("aria-current") === "page") button.setAttribute("aria-current", "page");
+      button.addEventListener("click", () => {
+        if (!button.disabled && original.isConnected) original.click();
+      });
+      bar.appendChild(button);
+    });
+
+    target.parentElement.insertBefore(bar, target);
+  }
+
+  // ── Remember items per page ───────────────
+  function soloPageKey(select, index) {
+    const path = location.pathname.replace(/^\/app\/![^/]+/, "/app/:org");
+    return `${location.hostname}${path}#${select.name || select.id || index}`;
+  }
+
+  function soloPageSizeSelects() {
+    return [...document.querySelectorAll("select")].filter((select) => {
+      const numbers = [...select.options]
+        .map((option) => String(option.value || option.textContent).trim())
+        .filter((value) => /^\d+$/.test(value))
+        .map(Number);
+      return soloVisible(select) && numbers.length >= 2 && Math.min(...numbers) <= 100 && Math.max(...numbers) >= 50;
+    });
+  }
+
+  function soloApplyPageSizes() {
+    if (!soloPaid || !soloPrefs.rememberPageSize) return;
+    soloPageSizeSelects().forEach((select, index) => {
+      const key = soloPageKey(select, index);
+      if (!select.dataset.xpPageSizeBound) {
+        select.dataset.xpPageSizeBound = "1";
+        select.addEventListener("change", () => {
+          if (!soloPaid || !soloPrefs.rememberPageSize) return;
+          soloPageSizes[key] = select.value;
+          chrome.storage?.local?.set({ xp_page_sizes: soloPageSizes })?.catch?.(() => {});
+        });
+      }
+
+      const saved = soloPageSizes[key];
+      if (!saved || select.value === saved || ![...select.options].some((option) => option.value === saved)) return;
+      select.value = saved;
+      select.dispatchEvent(new Event("input", { bubbles: true }));
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }
+
+  function soloCleanup() {
+    document.getElementById("xp-top-pagination")?.remove();
+  }
+
+  function soloApplyAll() {
+    if (!soloPaid) { soloCleanup(); return; }
+    soloEnsureStyle();
+    soloApplyTopPagination();
+    soloApplyPageSizes();
+  }
+
+  function soloLoadState() {
+    if (!chrome?.storage?.local) return;
+    chrome.storage.local.get([
+      "xp_pro", "xp_plan", "xp_solo_top_pagination",
+      "xp_solo_remember_page_size", "xp_page_sizes",
+    ]).then((data) => {
+      soloPaid = soloCanUse(data);
+      soloPrefs = {
+        topPagination: data.xp_solo_top_pagination !== false,
+        rememberPageSize: data.xp_solo_remember_page_size !== false,
+      };
+      soloPageSizes = data.xp_page_sizes || {};
+      soloApplyAll();
+    }).catch(() => {});
+  }
+
+  if (chrome?.storage?.local) {
+    soloLoadState();
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "local") return;
+      const keys = [
+        "xp_pro", "xp_plan", "xp_solo_top_pagination",
+        "xp_solo_remember_page_size", "xp_page_sizes",
+      ];
+      if (keys.some((key) => changes[key])) soloLoadState();
+    });
+  }
+
+  let soloPending = false;
+  const soloObserver = new MutationObserver(() => {
+    if (soloPending || !soloPaid) return;
+    soloPending = true;
+    requestAnimationFrame(() => {
+      soloPending = false;
+      soloApplyAll();
+    });
+  });
+  if (document.body) soloObserver.observe(document.body, { childList: true, subtree: true });
+
+  // ─────────────────────────────────────────
+  // 6.10 Practice Pro review tools
+  //   Awaiting Approval: Xeroの一覧に表示された件数だけを端末内に記録する。
+  //   Find & Recode: Xeroの行順は変更せず、説明欄の索引から元行へ移動する。
+  // ─────────────────────────────────────────
+  const PRACTICE_CSS = `
+    #xp-recode-index {
+      margin: 0 0 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+      background: #fff; color: #1f2937;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    #xp-recode-index summary {
+      display: flex; align-items: center; justify-content: space-between;
+      min-height: 38px; padding: 8px 10px; cursor: pointer;
+      font-size: 13px; font-weight: 700; list-style: none;
+    }
+    #xp-recode-index summary::-webkit-details-marker { display: none; }
+    #xp-recode-index summary span { color: #6b7280; font-size: 11px; font-weight: 500; }
+    #xp-recode-index .xp-recode-tools {
+      display: grid; grid-template-columns: minmax(120px, 1fr) auto;
+      gap: 8px; padding: 0 10px 10px;
+    }
+    #xp-recode-index input {
+      min-width: 0; height: 32px; border: 1px solid #cbd5e1; border-radius: 4px;
+      padding: 0 9px; color: #1f2937; background: #fff; font: inherit;
+    }
+    #xp-recode-index .xp-recode-order { display: inline-flex; }
+    #xp-recode-index .xp-recode-order button {
+      height: 32px; border: 1px solid #cbd5e1; background: #fff; color: #374151;
+      padding: 0 9px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600;
+    }
+    #xp-recode-index .xp-recode-order button:first-child { border-radius: 4px 0 0 4px; }
+    #xp-recode-index .xp-recode-order button:last-child { border-radius: 0 4px 4px 0; border-left: 0; }
+    #xp-recode-index .xp-recode-order button[aria-pressed="true"] { background: #0a7a4b; color: #fff; border-color: #0a7a4b; }
+    #xp-recode-index .xp-recode-results {
+      max-height: 220px; overflow: auto; border-top: 1px solid #e5e7eb;
+    }
+    #xp-recode-index .xp-recode-item {
+      display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 8px;
+      width: 100%; min-height: 34px; padding: 7px 10px;
+      border: 0; border-bottom: 1px solid #f3f4f6; background: #fff;
+      color: #374151; text-align: left; cursor: pointer; font: inherit; font-size: 12px; line-height: 1.35;
+    }
+    #xp-recode-index .xp-recode-item:hover { background: #f0fdf4; }
+    #xp-recode-index .xp-recode-row { color: #9ca3af; text-align: right; }
+    #xp-recode-index .xp-recode-empty { padding: 12px; color: #6b7280; font-size: 12px; }
+  `;
+
+  let practicePaid = false;
+  let practiceApprovalWatch = false;
+  let practiceRecodeIndex = true;
+  let practiceRecodeQuery = "";
+  let practiceRecodeOrder = "asc";
+  let practiceQueuePending = false;
+  const practiceQueueSeen = {};
+
+  function practiceCanUse(data) {
+    if (data?.xp_plan) return data.xp_plan === "practice";
+    return data?.xp_pro === true;
+  }
+
+  function practiceEnsureStyle() {
+    if (document.getElementById("xp-practice-styles")) return;
+    const style = document.createElement("style");
+    style.id = "xp-practice-styles";
+    style.textContent = PRACTICE_CSS;
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  // ── Awaiting Approval Watch ───────────────
+  function practiceApprovalKind() {
+    const path = location.pathname.toLowerCase();
+    const status = [...new URLSearchParams(location.search).entries()]
+      .filter(([key]) => /status|view|tab/i.test(key))
+      .map(([, value]) => value)
+      .join(" ")
+      .toLowerCase()
+      .replace(/[-_]+/g, " ");
+    const isAwaitingApproval =
+      path.includes("awaiting-approval") ||
+      path.includes("awaitingapproval") ||
+      status.includes("awaiting approval") ||
+      status.includes("submitted");
+    if (!isAwaitingApproval) return null;
+
+    if (path.includes("accountsreceivable/search") || path.includes("/invoicing")) return "invoices";
+    if (path.includes("accountspayable/search") || path.includes("/bills")) return "bills";
+    return null;
+  }
+
+  function practiceAwaitingCount() {
+    const candidates = [...document.querySelectorAll('a,button,[role="tab"],[role="option"]')]
+      .filter(soloVisible);
+    const counts = candidates.map((el) => {
+      const label = soloNorm([
+        el.getAttribute?.("aria-label"),
+        el.getAttribute?.("title"),
+        el.textContent,
+      ].filter(Boolean).join(" "));
+      const start = label.indexOf("awaiting approval");
+      if (start < 0) return null;
+      const match = label.slice(start + "awaiting approval".length).match(/\b([\d,]+)\b/);
+      return match ? Number(match[1].replace(/,/g, "")) : null;
+    }).filter(Number.isFinite);
+    return counts.length ? Math.max(...counts) : null;
+  }
+
+  function practiceApprovalUrl(kind, orgId) {
+    return location.href;
+  }
+
+  async function practiceRecordApprovalQueue() {
+    if (!practicePaid || !practiceApprovalWatch || !chrome?.storage?.local || practiceQueuePending) return;
+    const kind = practiceApprovalKind();
+    const orgId = ocOrgId();
+    const count = practiceAwaitingCount();
+    if (!kind || !orgId || count === null) return;
+
+    const key = `${orgId}:${kind}`;
+    const now = Date.now();
+    const seen = practiceQueueSeen[key];
+    if (seen?.count === count && now - seen.checkedAt < 30000) return;
+    practiceQueueSeen[key] = { count, checkedAt: now };
+
+    practiceQueuePending = true;
+    try {
+      const data = await chrome.storage.local.get(["xp_approval_queues"]);
+      const queues = data.xp_approval_queues || {};
+
+      Object.keys(queues).forEach((queueKey) => {
+        if (now - Number(queues[queueKey]?.observedAt || 0) > 30 * 86400000) delete queues[queueKey];
+      });
+      const previous = queues[key];
+      if (previous?.count === count && now - Number(previous.observedAt || 0) < 300000) return;
+
+      const entry = {
+        orgId,
+        orgName: ocOrgName() || previous?.orgName || orgId,
+        kind,
+        count,
+        observedAt: now,
+        url: practiceApprovalUrl(kind, orgId),
+      };
+      queues[key] = entry;
+      await chrome.storage.local.set({ xp_approval_queues: queues });
+
+      if (previous && count > Number(previous.count || 0)) {
+        await chrome.runtime?.sendMessage?.({
+          type: "xp-approval-increased",
+          entry,
+          previousCount: Number(previous.count || 0),
+        })?.catch?.(() => null);
+      }
+    } catch {
+      // The Xero tab may navigate while storage is being updated.
+    } finally {
+      practiceQueuePending = false;
+    }
+  }
+
+  // ── Find & Recode Description Index ──────
+  function practiceIsRecodePage() {
+    return location.pathname.toLowerCase().includes("/accounts/recoding");
+  }
+
+  function practiceIsDescriptionHeader(cell) {
+    return soloNorm(cell?.textContent) === "description";
+  }
+
+  function practiceStandardRecodeSource() {
+    for (const table of document.querySelectorAll("table")) {
+      if (!soloVisible(table)) continue;
+      const headerRows = [...table.querySelectorAll("thead tr, tr")];
+      const headerRow = headerRows.find((row) =>
+        [...row.children].some(practiceIsDescriptionHeader)
+      );
+      if (!headerRow) continue;
+      const headers = [...headerRow.children];
+      const descriptionIndex = headers.findIndex(practiceIsDescriptionHeader);
+      if (descriptionIndex < 0) continue;
+      const rows = [...table.querySelectorAll("tbody tr")].filter(soloVisible);
+      const entries = rows.map((row, index) => ({
+        row,
+        index: index + 1,
+        description: String(row.children[descriptionIndex]?.textContent || "").replace(/\s+/g, " ").trim(),
+      })).filter((entry) => entry.description);
+      if (entries.length) return { root: table, entries };
+    }
+    return null;
+  }
+
+  function practiceExtRecodeSource() {
+    for (const grid of document.querySelectorAll(".x-grid3")) {
+      if (!soloVisible(grid)) continue;
+      const headerRow = [...grid.querySelectorAll(".x-grid3-hd-row")].find((row) =>
+        [...row.querySelectorAll("td")].some(practiceIsDescriptionHeader)
+      );
+      const headers = headerRow ? [...headerRow.querySelectorAll("td")] : [];
+      const descriptionIndex = headers.findIndex(practiceIsDescriptionHeader);
+      if (descriptionIndex < 0) continue;
+      const rows = [...grid.querySelectorAll(".x-grid3-row")].filter(soloVisible);
+      const entries = rows.map((row, index) => {
+        const cells = [...row.querySelectorAll(".x-grid3-cell,td")];
+        const named = row.querySelector([
+          '[class*="x-grid3-td-colDescription"]',
+          '[class*="x-grid3-td-Description"]',
+          '[class*="description" i]',
+          '[data-columnid*="description" i]',
+          '[data-field*="description" i]',
+        ].join(","));
+        return {
+          row,
+          index: index + 1,
+          description: String((named || cells[descriptionIndex])?.textContent || "").replace(/\s+/g, " ").trim(),
+        };
+      }).filter((entry) => entry.description);
+      if (entries.length) return { root: grid, entries };
+    }
+    return null;
+  }
+
+  function practiceRecodeRows(root = document) {
+    const selector = [
+      ".x-grid3-row",
+      ".x-grid-row",
+      '[role="row"]',
+      "tbody tr",
+      '[class*="grid-row" i]',
+      '[class*="table-row" i]',
+    ].join(",");
+    return [...root.querySelectorAll(selector)].filter((row) => {
+      if (!soloVisible(row)) return false;
+      return !row.querySelector('th,[role="columnheader"],.x-grid3-hd,.x-column-header');
+    });
+  }
+
+  function practiceRecodeCells(row) {
+    const selector = [
+      "td",
+      '[role="cell"]',
+      '[role="gridcell"]',
+      ".x-grid3-cell",
+      ".x-grid-cell",
+    ].join(",");
+    const cells = [...row.querySelectorAll(selector)].filter(soloVisible);
+    return cells.length ? cells : [...row.children].filter(soloVisible);
+  }
+
+  function practiceRecodeRoot(rows) {
+    const first = rows[0];
+    if (!first) return null;
+    return first.closest([
+      '[role="grid"]',
+      ".x-grid3",
+      ".x-grid",
+      ".x-grid-panel",
+      '[class*="grid-container" i]',
+      "table",
+    ].join(",")) || first.parentElement;
+  }
+
+  function practiceNamedRecodeSource() {
+    const rows = practiceRecodeRows();
+    if (!rows.length) return null;
+    const selector = [
+      '[class*="x-grid3-td-colDescription"]',
+      '[class*="x-grid3-td-Description"]',
+      '[class*="description" i]',
+      '[data-columnid*="description" i]',
+      '[data-field*="description" i]',
+    ].join(",");
+    const entries = rows.map((row, index) => ({
+      row,
+      index: index + 1,
+      description: String(row.querySelector(selector)?.textContent || "").replace(/\s+/g, " ").trim(),
+    })).filter((entry) => entry.description);
+    const root = practiceRecodeRoot(rows);
+    return root && entries.length ? { root, entries } : null;
+  }
+
+  function practiceVisualRecodeSource() {
+    const header = [...document.querySelectorAll([
+      "th",
+      '[role="columnheader"]',
+      ".x-grid3-hd",
+      ".x-grid3-hd-inner",
+      ".x-column-header",
+      ".x-column-header-text",
+    ].join(","))].find((candidate) => soloVisible(candidate) && practiceIsDescriptionHeader(candidate));
+    if (!header) return null;
+
+    const headerRect = header.getBoundingClientRect();
+    const descriptionX = headerRect.left + (headerRect.width / 2);
+    const rows = practiceRecodeRows().filter((row) => {
+      const rect = row.getBoundingClientRect();
+      return rect.width > 0
+        && rect.height > 0
+        && rect.bottom > headerRect.bottom
+        && rect.left <= descriptionX
+        && rect.right >= descriptionX;
+    });
+    if (!rows.length) return null;
+    const entries = rows.map((row, index) => {
+      const cell = practiceRecodeCells(row).find((candidate) => {
+        if (!soloVisible(candidate)) return false;
+        const rect = candidate.getBoundingClientRect();
+        return rect.width > 0 && rect.left <= descriptionX && rect.right >= descriptionX;
+      });
+      return {
+        row,
+        index: index + 1,
+        description: String(cell?.textContent || "").replace(/\s+/g, " ").trim(),
+      };
+    }).filter((entry) => entry.description);
+    const root = practiceRecodeRoot(rows);
+    return root && entries.length ? { root, entries } : null;
+  }
+
+  function practiceRecodeSource() {
+    return practiceStandardRecodeSource()
+      || practiceExtRecodeSource()
+      || practiceNamedRecodeSource()
+      || practiceVisualRecodeSource();
+  }
+
+  function practiceRecodeSignature(entries) {
+    let hash = 5381;
+    entries.forEach((entry) => {
+      for (const char of entry.description) hash = ((hash << 5) + hash) ^ char.charCodeAt(0);
+    });
+    return `${entries.length}:${hash >>> 0}`;
+  }
+
+  function practiceRenderRecodeItems(container, entries) {
+    const query = soloNorm(practiceRecodeQuery);
+    const filtered = entries
+      .filter((entry) => !query || soloNorm(entry.description).includes(query))
+      .sort((a, b) => {
+        const result = a.description.localeCompare(b.description, undefined, { numeric: true, sensitivity: "base" });
+        return practiceRecodeOrder === "asc" ? result : -result;
+      });
+    container.innerHTML = "";
+
+    if (!filtered.length) {
+      const empty = document.createElement("div");
+      empty.className = "xp-recode-empty";
+      empty.textContent = "No visible descriptions match.";
+      container.appendChild(empty);
+      return;
+    }
+
+    filtered.forEach((entry) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "xp-recode-item";
+      const rowNumber = document.createElement("span");
+      rowNumber.className = "xp-recode-row";
+      rowNumber.textContent = String(entry.index);
+      const description = document.createElement("span");
+      description.textContent = entry.description;
+      button.append(rowNumber, description);
+      button.addEventListener("click", () => {
+        if (!entry.row.isConnected) return;
+        const previousOutline = entry.row.style.outline;
+        entry.row.style.outline = "2px solid #0a7a4b";
+        entry.row.scrollIntoView({ block: "center", behavior: "smooth" });
+        setTimeout(() => {
+          if (entry.row.isConnected) entry.row.style.outline = previousOutline;
+        }, 1600);
+      });
+      container.appendChild(button);
+    });
+  }
+
+  function practiceApplyRecodeIndex() {
+    const existing = document.getElementById("xp-recode-index");
+    if (!practicePaid || !practiceRecodeIndex || !practiceIsRecodePage()) {
+      existing?.remove();
+      return;
+    }
+
+    const source = practiceRecodeSource();
+    if (!source?.root?.parentElement) {
+      existing?.remove();
+      return;
+    }
+    const signature = practiceRecodeSignature(source.entries);
+    if (
+      existing?.dataset.signature === signature &&
+      existing.__xpRecodeRoot === source.root &&
+      existing.__xpFirstRow === source.entries[0]?.row
+    ) return;
+    existing?.remove();
+
+    const details = document.createElement("details");
+    details.id = "xp-recode-index";
+    details.dataset.signature = signature;
+    details.__xpRecodeRoot = source.root;
+    details.__xpFirstRow = source.entries[0]?.row;
+    details.open = true;
+
+    const summary = document.createElement("summary");
+    summary.textContent = "Description index";
+    const count = document.createElement("span");
+  count.textContent = `${source.entries.length} descriptions`;
+    summary.appendChild(count);
+
+    const tools = document.createElement("div");
+    tools.className = "xp-recode-tools";
+    const search = document.createElement("input");
+    search.type = "search";
+    search.placeholder = "Filter descriptions";
+    search.value = practiceRecodeQuery;
+    search.setAttribute("aria-label", "Filter descriptions");
+
+    const order = document.createElement("div");
+    order.className = "xp-recode-order";
+    const asc = document.createElement("button");
+    const desc = document.createElement("button");
+    asc.type = desc.type = "button";
+    asc.textContent = "A-Z";
+    desc.textContent = "Z-A";
+    asc.setAttribute("aria-pressed", String(practiceRecodeOrder === "asc"));
+    desc.setAttribute("aria-pressed", String(practiceRecodeOrder === "desc"));
+    order.append(asc, desc);
+    tools.append(search, order);
+
+    const results = document.createElement("div");
+    results.className = "xp-recode-results";
+    practiceRenderRecodeItems(results, source.entries);
+
+    search.addEventListener("input", () => {
+      practiceRecodeQuery = search.value;
+      practiceRenderRecodeItems(results, source.entries);
+    });
+    [asc, desc].forEach((button, index) => {
+      button.addEventListener("click", () => {
+        practiceRecodeOrder = index === 0 ? "asc" : "desc";
+        asc.setAttribute("aria-pressed", String(practiceRecodeOrder === "asc"));
+        desc.setAttribute("aria-pressed", String(practiceRecodeOrder === "desc"));
+        practiceRenderRecodeItems(results, source.entries);
+      });
+    });
+
+    details.append(summary, tools, results);
+    source.root.parentElement.insertBefore(details, source.root);
+  }
+
+  function practiceCleanup() {
+    document.getElementById("xp-recode-index")?.remove();
+  }
+
+  function practiceApplyAll() {
+    if (!practicePaid) { practiceCleanup(); return; }
+    practiceEnsureStyle();
+    practiceRecordApprovalQueue();
+    practiceApplyRecodeIndex();
+  }
+
+  function practiceLoadState() {
+    if (!chrome?.storage?.local) return;
+    chrome.storage.local.get([
+      "xp_pro", "xp_plan", "xp_practice_approval_watch", "xp_practice_recode_index",
+    ]).then((data) => {
+      practicePaid = practiceCanUse(data);
+      practiceApprovalWatch = data.xp_practice_approval_watch === true;
+      practiceRecodeIndex = data.xp_practice_recode_index !== false;
+      practiceApplyAll();
+    }).catch(() => {});
+  }
+
+  if (chrome?.storage?.local) {
+    practiceLoadState();
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "local") return;
+      const keys = ["xp_pro", "xp_plan", "xp_practice_approval_watch", "xp_practice_recode_index"];
+      if (keys.some((key) => changes[key])) practiceLoadState();
+    });
+  }
+
+  let practicePending = false;
+  const practiceObserver = new MutationObserver(() => {
+    if (practicePending || !practicePaid) return;
+    practicePending = true;
+    requestAnimationFrame(() => {
+      practicePending = false;
+      practiceApplyAll();
+    });
+  });
+  if (document.body) practiceObserver.observe(document.body, { childList: true, subtree: true });
 
   // ─────────────────────────────────────────
   // 7. ページ別機能の起動 / 終了
@@ -1880,11 +2814,14 @@
     if (path.includes("invoicing")) iaStart();
     else iaStop();
 
-    // Bills：Approve & next（一覧のキュー取得＋ボタン注入）
-    baBoot();
-
     // 組織カラー（全ページ共通）
     ocApply();
+
+    // Solo Pro tools（全ページを安全に再評価）
+    soloApplyAll();
+
+    // Practice Pro tools（承認キューとFind & Recode索引）
+    practiceApplyAll();
   }
 
   // ─────────────────────────────────────────
@@ -2011,7 +2948,7 @@
   showOnboardingToast();
 
   console.log(
-    `%c[Xero Power] v${window.__xeroPower} ✅  ${MOD_LABEL}K palette | Most used | Bank Rec: arrows M C T D Enter | Invoicing: Approve by default | Pro: options page`,
+    `%c[Xero Power] v${window.__xeroPower} ✅  ${MOD_LABEL}K palette | Most used | Bank Rec: arrows M C T D Enter | Invoicing: Approve by default | Plans: options page`,
     "color:#0a7a4b;font-weight:bold;font-size:13px"
   );
 })();

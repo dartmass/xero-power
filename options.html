@@ -27,6 +27,7 @@
     }
     .chip-free { background: rgba(255,255,255,.2); color: #fff; }
     .chip-pro  { background: #fbbf24; color: #78350f; }
+    .chip-practice { background: #dbeafe; color: #1e3a8a; }
 
     .container { max-width: 640px; margin: 40px auto; padding: 0 24px 60px; }
 
@@ -69,6 +70,13 @@
     }
     .toggle-switch input:checked + .toggle-slider { background: #0a7a4b; }
     .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+    .notification-test {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 10px 0 12px; border-bottom: 1px solid #f3f4f6;
+    }
+    .notification-test-status { flex: 1 1 260px; font-size: 12px; color: #6b7280; line-height: 1.4; }
+    .notification-test-status.is-ok { color: #166534; }
+    .notification-test-status.is-error { color: #b91c1c; }
 
     /* Organisation colours */
     .org-row {
@@ -81,18 +89,29 @@
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .org-id { font-size: 11px; color: #9ca3af; font-family: monospace; }
+    .org-selection { margin-top: 3px; font-size: 11px; color: #374151; font-weight: 600; }
+    .org-row-inactive .org-selection { color: #92400e; }
     .org-swatches { display: flex; gap: 6px; flex-shrink: 0; }
     .swatch {
       width: 22px; height: 22px; border-radius: 50%;
       border: 2px solid transparent; cursor: pointer; padding: 0;
-      outline-offset: 2px;
+      outline-offset: 2px; position: relative;
+      display: inline-flex; align-items: center; justify-content: center;
     }
-    .swatch[aria-pressed="true"] { border-color: #111827; }
+    .swatch[aria-pressed="true"] {
+      border-color: #fff; box-shadow: 0 0 0 2px #111827;
+    }
+    .swatch:not(.swatch-none)[aria-pressed="true"]::after {
+      content: "✓"; color: #fff; font-size: 13px; font-weight: 800; line-height: 1;
+      text-shadow: 0 1px 2px rgba(0,0,0,.65);
+    }
     .swatch-none {
       background: #fff; border: 1px dashed #d1d5db;
       color: #9ca3af; font-size: 13px; line-height: 1;
     }
-    .swatch-none[aria-pressed="true"] { border: 2px solid #111827; }
+    .swatch-none[aria-pressed="true"] {
+      border: 2px solid #fff; box-shadow: 0 0 0 2px #111827; background: #f3f4f6;
+    }
     .swatch:disabled { opacity: .3; cursor: not-allowed; }
     .org-empty, .org-limit {
       font-size: 13px; color: #6b7280; padding: 4px 0;
@@ -101,6 +120,11 @@
       border: 1px solid #fde68a; border-radius: 8px; padding: 10px 12px; display: none; }
     .org-limit a { color: #0a7a4b; font-weight: 600; text-decoration: none; }
     .org-limit a:hover { text-decoration: underline; }
+    .org-actions {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+    }
+    .org-refresh-status { font-size: 12px; color: #6b7280; }
+    .org-refresh-status.is-error { color: #b91c1c; }
 
     /* License */
     .license-row { display: flex; gap: 8px; }
@@ -118,9 +142,20 @@
       transition: opacity .15s;
     }
     .btn:hover { opacity: .85; }
+    .btn:disabled,
+    .btn:disabled:hover {
+      background: #e5e7eb; color: #9ca3af;
+      border-color: #d1d5db; opacity: 1; cursor: not-allowed;
+    }
     .btn-green  { background: #0a7a4b; color: #fff; }
     .btn-gray   { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
     .btn-red    { background: #fee2e2; color: #dc2626; }
+    .btn-link {
+      display: inline-flex; align-items: center; justify-content: center;
+      text-decoration: none;
+    }
+    .billing-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+    .license-note { margin-top: 10px; font-size: 12px; color: #6b7280; }
 
     .license-status {
       margin-top: 10px; font-size: 13px;
@@ -128,28 +163,51 @@
     }
     .status-ok  { color: #0a7a4b; }
     .status-err { color: #dc2626; }
+    /* 「判断できなかった」用。拒否ではないので赤にしない。 */
+    .status-warn { color: #b45309; }
 
     /* Upsell */
     .upsell {
-      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-      border: 1px solid #bbf7d0;
+      background: #fff;
+      border: 1px solid #d1fae5;
       border-radius: 12px;
       padding: 20px 24px;
       margin-bottom: 20px;
     }
-    .upsell-title { font-size: 15px; font-weight: 700; color: #14532d; margin-bottom: 6px; }
-    .upsell-list  { font-size: 13px; color: #166534; line-height: 1.9; margin-bottom: 14px; }
-    .upsell-list li { list-style: none; padding-left: 4px; }
-    .upsell-list li::before { content: "✓  "; font-weight: 700; }
+    .upsell-title { font-size: 15px; font-weight: 700; color: #14532d; margin-bottom: 4px; }
+    .upsell-sub { font-size: 13px; color: #4b5563; margin-bottom: 16px; }
+    .plan-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .plan-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+    }
+    .plan-card-featured { border-color: #0a7a4b; box-shadow: 0 0 0 1px rgba(10,122,75,.08); }
+    .plan-name { font-size: 13px; font-weight: 700; color: #111827; }
+    .plan-price { font-size: 20px; font-weight: 800; color: #111827; margin: 6px 0 2px; }
+    .plan-price span { font-size: 12px; font-weight: 500; color: #6b7280; }
+    .plan-desc { font-size: 12px; color: #6b7280; min-height: 34px; }
+    .upsell-list  { font-size: 12px; color: #374151; line-height: 1.6; margin: 10px 0 12px; }
+    .upsell-list li { list-style: none; padding-left: 2px; }
+    .upsell-list li::before { content: "✓  "; color: #0a7a4b; font-weight: 700; }
     .btn-upgrade {
       display: inline-block;
       background: #0a7a4b; color: #fff;
-      padding: 10px 22px; border-radius: 8px;
-      font-size: 14px; font-weight: 700;
+      padding: 8px 12px; border-radius: 8px;
+      font-size: 12px; font-weight: 700;
       text-decoration: none;
+      text-align: center;
+      width: 100%;
     }
     .btn-upgrade:hover { background: #085f3a; }
-    .price-note { font-size: 12px; color: #6b7280; margin-top: 8px; }
+    .btn-secondary { background: #f3f4f6; color: #374151; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .price-note { font-size: 12px; color: #6b7280; margin-top: 12px; }
 
     /* Shortcuts */
     .sc-grid {
@@ -180,6 +238,28 @@
     .save-row { margin-top: 18px; display: flex; align-items: center; gap: 12px; }
     .save-msg { font-size: 13px; color: #0a7a4b; display: none; }
 
+    .apply-dock {
+      position: fixed; right: 24px; bottom: 24px; z-index: 100;
+      display: flex; align-items: center; gap: 10px;
+      background: #fff; border: 1px solid #d1d5db; border-radius: 8px;
+      padding: 10px; box-shadow: 0 8px 24px rgba(17,24,39,.16);
+    }
+    .apply-status {
+      display: none; max-width: 230px;
+      color: #374151; font-size: 12px; line-height: 1.35;
+    }
+    .apply-status.is-visible { display: block; }
+    .apply-status.is-error { color: #b91c1c; }
+
+    @media (max-width: 680px) {
+      .topbar { padding: 14px 20px; }
+      .container { margin-top: 24px; }
+      .plan-grid { grid-template-columns: 1fr; }
+      .plan-desc { min-height: 0; }
+      .apply-dock { right: 16px; bottom: 16px; left: 16px; justify-content: flex-end; }
+      .apply-status { margin-right: auto; }
+    }
+
   </style>
 </head>
 <body>
@@ -195,15 +275,50 @@
 
     <!-- Upsell (shown when Free) -->
     <div class="upsell" id="upsell-box">
-      <div class="upsell-title">Upgrade to Xero Power Pro</div>
-      <ul class="upsell-list">
-        <li>Require a tracking category before anyone can approve</li>
-        <li>A nav colour for every organisation, not just two</li>
-        <li>Custom keyboard shortcuts — remap any key</li>
-        <li>Priority support</li>
-      </ul>
-      <a class="btn-upgrade" id="upgrade-link" href="#" target="_blank">Get Pro — $44.99/month</a>
-      <!-- 年額プランは未定。決まったら「or $XXX/year · 」を先頭に戻す -->
+      <div class="upsell-title">Choose the plan that matches your Xero workload</div>
+      <div class="upsell-sub">Start free, upgrade when you manage more organisations or need approval guardrails.</div>
+
+      <div class="plan-grid">
+        <div class="plan-card">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">$0</div>
+          <div class="plan-desc">For every Xero user who wants fewer clicks.</div>
+          <ul class="upsell-list">
+            <li>Command palette</li>
+            <li>Bank Rec shortcuts</li>
+            <li>Approve-only default</li>
+            <li>Two organisation colours</li>
+          </ul>
+          <a class="btn-upgrade btn-secondary" href="#license-input">Current plan</a>
+        </div>
+
+        <div class="plan-card plan-card-featured">
+          <div class="plan-name">Solo Pro</div>
+          <div class="plan-price">$14.99 <span>/ month</span></div>
+          <div class="plan-desc">For solo bookkeepers and power users.</div>
+          <ul class="upsell-list">
+            <li>Unlimited organisation colours</li>
+            <li>Custom keyboard shortcuts</li>
+            <li>Multi-organisation workspace</li>
+            <li>Invoice and list power tools</li>
+          </ul>
+          <a class="btn-upgrade" id="solo-upgrade-link" href="#" target="_blank">Get Solo Pro</a>
+        </div>
+
+        <div class="plan-card">
+          <div class="plan-name">Practice Pro</div>
+          <div class="plan-price">$44.99 <span>/ month</span></div>
+          <div class="plan-desc">For practices that need clean coding before approval.</div>
+          <ul class="upsell-list">
+            <li>Everything in Solo Pro</li>
+            <li>Configurable approval guardrails</li>
+            <li>Awaiting approval watch</li>
+            <li>Find &amp; Recode review index</li>
+            <li>Practice-level support</li>
+          </ul>
+          <a class="btn-upgrade" id="practice-upgrade-link" href="#" target="_blank">Get Practice Pro</a>
+        </div>
+      </div>
       <div class="price-note">cancel any time</div>
     </div>
 
@@ -234,39 +349,96 @@
         </label>
       </div>
 
-      <div class="toggle-row">
+    </div>
+
+    <!-- Solo Pro tools -->
+    <div class="card" id="solo-tools-card">
+      <div class="card-title">
+        Solo Pro tools
+        <span class="pro-lock" id="solo-tools-lock">🔒 Solo Pro</span>
+      </div>
+      <div class="card-sub">Extra controls for people who work across Xero all day.</div>
+
+      <div class="toggle-row solo-tool-row">
         <div>
-          <div class="toggle-label">
-            Require a tracking category on every line
-            <span class="pro-lock" id="tracking-pro-lock">🔒 Pro</span>
-          </div>
-          <div class="toggle-desc">
-            Blocks <strong>Approve</strong> on invoices and bills until every line has a tracking
-            category. Drafts still save, so nobody loses work in progress.
-            <br>
-            <span style="color:#92400e">This is a guardrail, not a control — anyone who turns the
-            extension off can approve without it.</span>
-          </div>
+          <div class="toggle-label">Lists — show page controls at the top</div>
+          <div class="toggle-desc">Mirrors Xero's existing page controls above long lists, so you do not need to scroll to the bottom.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-solo-top-pagination" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row solo-tool-row">
+        <div>
+          <div class="toggle-label">Lists — remember items per page</div>
+          <div class="toggle-desc">Restores your last selected page size when Xero exposes an items-per-page selector.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-solo-page-size" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+    </div>
+
+    <!-- Practice Pro tools -->
+    <div class="card" id="practice-tools-card">
+      <div class="card-title">
+        Practice Pro tools
+        <span class="pro-lock" id="practice-tools-lock">🔒 Practice Pro</span>
+      </div>
+      <div class="card-sub">Quality checks and review queues for bookkeeping practices.</div>
+
+      <div class="toggle-row practice-tool-row">
+        <div>
+          <div class="toggle-label">Approval guardrail — require tracking categories</div>
+          <div class="toggle-desc">Blocks Approve on invoices and bills until every populated line has a tracking category.</div>
         </div>
         <label class="toggle-switch">
           <input type="checkbox" id="toggle-require-tracking">
           <span class="toggle-slider"></span>
         </label>
       </div>
-
-      <div class="toggle-row">
+      <div class="toggle-row practice-tool-row">
         <div>
-          <div class="toggle-label">Bills — show an "Approve &amp; next" button</div>
-          <div class="toggle-desc">
-            Adds a button that approves the bill and opens the next one from the list you came
-            from, so a run of bills does not send you back to the list every time.
-            Open a bills list first — that is where the order comes from.
-          </div>
+          <div class="toggle-label">Approval guardrail — require line descriptions</div>
+          <div class="toggle-desc">Blocks Approve when a populated invoice or bill line has no description. Drafts still save normally.</div>
         </div>
         <label class="toggle-switch">
-          <input type="checkbox" id="toggle-bill-approve" checked>
+          <input type="checkbox" id="toggle-require-description">
           <span class="toggle-slider"></span>
         </label>
+      </div>
+      <div class="toggle-row practice-tool-row">
+        <div>
+          <div class="toggle-label">Watch Awaiting Approval queues</div>
+          <div class="toggle-desc">Records counts visible on Xero invoice and bill lists, then sends a local Chrome notification when a previously seen count increases.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-practice-approval-watch">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="notification-test practice-tool-row">
+        <button class="btn btn-gray" id="approval-notification-test" type="button">Send test notification</button>
+        <div class="notification-test-status" id="approval-notification-status" role="status"></div>
+      </div>
+
+      <div class="toggle-row practice-tool-row">
+        <div>
+          <div class="toggle-label">Find &amp; Recode — show Description index</div>
+          <div class="toggle-desc">Adds a searchable A-Z/Z-A review index for the visible results without changing Xero's transaction order.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggle-practice-recode-index" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-desc" style="margin-top:14px;color:#92400e">
+        Approval checks are workflow guardrails, not access controls. Turning off the extension bypasses them.
       </div>
     </div>
 
@@ -275,11 +447,16 @@
       <div class="card-title">Organisation colours</div>
       <div class="card-sub">
         Give each organisation its own navigation bar colour, so a glance tells you
-        which one you are working in. Organisations show up here after you open them in Xero.
+        which one you are working in. Open Xero's organisation menu once, or refresh here,
+        to add every organisation currently available in the menu.
+      </div>
+      <div class="org-actions">
+        <button class="btn btn-gray" id="refresh-orgs-btn">Refresh organisations</button>
+        <span class="org-refresh-status" id="refresh-orgs-status" role="status" aria-live="polite"></span>
       </div>
       <div id="org-list"></div>
       <div class="org-empty" id="org-empty">
-        No organisations yet — open Xero and they'll appear here.
+        No organisations yet. Open Xero, then refresh this list.
       </div>
       <div class="org-limit" id="org-limit"></div>
     </div>
@@ -287,21 +464,29 @@
     <!-- License key -->
     <div class="card">
       <div class="card-title">License key</div>
-      <div class="card-sub">Enter your Pro license key to unlock all features.</div>
+      <div class="card-sub">Enter your Solo Pro or Practice Pro license key to unlock paid features.</div>
       <div class="license-row">
         <input class="license-input" id="license-input" type="text"
                placeholder="XXXX-XXXX-XXXX-XXXX" spellcheck="false" autocomplete="off" />
         <button class="btn btn-green" id="activate-btn">Activate</button>
-        <button class="btn btn-red" id="deactivate-btn" style="display:none">Remove</button>
+        <button class="btn btn-red" id="deactivate-btn" style="display:none">Deactivate this browser</button>
       </div>
       <div class="license-status" id="license-status"></div>
+      <div class="billing-actions">
+        <a class="btn btn-gray btn-link" id="manage-subscription-link" href="#" target="_blank" rel="noopener" style="display:none">
+          Manage subscription
+        </a>
+      </div>
+      <div class="license-note">
+        Deactivating removes paid access from this browser only. Use Manage subscription to cancel billing, update payment details, or download receipts.
+      </div>
     </div>
 
     <!-- Shortcuts -->
     <div class="card">
       <div class="card-title">
         Keyboard shortcuts
-        <span class="pro-lock" id="pro-lock-label">🔒 Pro</span>
+        <span class="pro-lock" id="pro-lock-label">🔒 Solo Pro</span>
       </div>
       <div class="card-sub">Customize which keys trigger each action. The command palette always uses Ctrl (Cmd on Mac) — only the letter changes.</div>
 
@@ -340,6 +525,11 @@
       </div>
     </div>
 
+  </div>
+
+  <div class="apply-dock">
+    <span class="apply-status" id="apply-status" role="status" aria-live="polite"></span>
+    <button class="btn btn-green" id="apply-btn">Save &amp; apply</button>
   </div>
   <script src="options.js"></script>
 </body>

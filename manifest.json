@@ -24,9 +24,15 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["storage"],
+  "permissions": ["storage", "alarms"],
+  "optional_permissions": ["notifications"],
   "host_permissions": ["https://api.polar.sh/*"],
   "content_scripts": [
+    {
+      "matches": ["https://*.xero.com/*"],
+      "js": ["shortcut-capture.js"],
+      "run_at": "document_start"
+    },
     {
       "matches": ["https://*.xero.com/*"],
       "js": ["content.js"],

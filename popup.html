@@ -5,7 +5,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      width: 240px;
+      width: 300px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: #fff;
       color: #111827;
@@ -16,8 +16,22 @@
       color: #fff;
       padding: 14px 16px 12px;
     }
+    .header-row {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px;
+    }
+    .header-main { min-width: 0; }
     .header-title { font-size: 15px; font-weight: 700; }
     .header-ver   { font-size: 11px; opacity: .7; margin-top: 1px; }
+    .header-settings {
+      flex: 0 0 auto; min-height: 32px; padding: 6px 11px;
+      border: 1px solid rgba(255,255,255,.75); border-radius: 6px;
+      background: #fff; color: #065f3b;
+      font: inherit; font-size: 11px; font-weight: 700;
+      cursor: pointer;
+    }
+    .header-settings:hover { background: #ecfdf5; }
+    .header-settings:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
     .badge {
       display: inline-block;
       font-size: 10px; font-weight: 700;
@@ -26,6 +40,7 @@
     }
     .badge-free { background: rgba(255,255,255,.2); color: #fff; }
     .badge-pro  { background: #fbbf24; color: #78350f; }
+    .badge-practice { background: #dbeafe; color: #1e3a8a; }
 
     /* 使用実績セクション（navTotal > 0 のとき表示） */
     .stats {
@@ -43,6 +58,99 @@
       font-size: 12px; color: #166534;
     }
     .stats-body strong { font-weight: 700; }
+
+    .workspace {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      display: none;
+    }
+    .workspace-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .workspace-title {
+      font-size: 10px; font-weight: 600; color: #9aa0b0;
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .workspace-count { font-size: 10px; color: #9ca3af; }
+    .workspace-help { font-size: 11px; color: #6b7280; line-height: 1.4; margin-bottom: 8px; }
+    .workspace-tools { margin-bottom: 7px; }
+    .workspace-search {
+      width: 100%; height: 30px; padding: 5px 9px;
+      border: 1px solid #d1d5db; border-radius: 6px;
+      background: #fff; color: #111827; font: inherit; font-size: 11px;
+      outline: none;
+    }
+    .workspace-search:focus { border-color: #0a7a4b; box-shadow: 0 0 0 2px rgba(10,122,75,.12); }
+    .workspace-search::placeholder { color: #9ca3af; }
+    .workspace-actions {
+      display: flex; align-items: center; gap: 8px; min-height: 25px;
+    }
+    .workspace-visible-count { margin-right: auto; font-size: 10px; color: #9ca3af; }
+    .workspace-action {
+      border: 0; padding: 3px 0; background: transparent;
+      color: #0a7a4b; font-size: 10px; font-weight: 600; cursor: pointer;
+    }
+    .workspace-action:hover { text-decoration: underline; }
+    .workspace-action:disabled { color: #c8cdd8; cursor: default; text-decoration: none; }
+    .workspace-list {
+      max-height: 140px; overflow-y: auto; scrollbar-gutter: stable;
+      margin-bottom: 9px; padding: 3px 5px;
+      border: 1px solid #e5e7eb; border-radius: 6px;
+    }
+    .workspace-list::-webkit-scrollbar { width: 8px; }
+    .workspace-list::-webkit-scrollbar-track { background: #f3f4f6; border-radius: 4px; }
+    .workspace-list::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+    .workspace-list::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+    .workspace-scroll-hint {
+      display: none; margin: -5px 1px 7px;
+      color: #6b7280; font-size: 10px; text-align: right;
+    }
+    .workspace-org {
+      display: grid; grid-template-columns: 18px 12px minmax(0, 1fr);
+      align-items: center; gap: 7px; min-height: 28px;
+      font-size: 12px; color: #374151; cursor: pointer;
+    }
+    .workspace-org input { width: 14px; height: 14px; accent-color: #0a7a4b; }
+    .workspace-dot { width: 10px; height: 10px; border-radius: 50%; background: #d1d5db; }
+    .workspace-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .workspace-empty { font-size: 11px; color: #6b7280; padding: 3px 0 8px; }
+    .workspace-open {
+      width: 100%; border: 0; border-radius: 6px; padding: 8px 10px;
+      background: #0a7a4b; color: #fff; font-size: 12px; font-weight: 700;
+      cursor: pointer;
+    }
+    .workspace-open:hover { background: #085f3a; }
+    .workspace-open:disabled { background: #d1d5db; color: #6b7280; cursor: not-allowed; }
+
+    .approval-queue {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      display: none;
+    }
+    .approval-title {
+      font-size: 10px; font-weight: 600; color: #1e3a8a;
+      text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px;
+    }
+    .approval-help { font-size: 11px; color: #6b7280; line-height: 1.4; margin-bottom: 7px; }
+    .approval-list { max-height: 142px; overflow-y: auto; }
+    .approval-row {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px; width: 100%; min-height: 36px; padding: 6px 0;
+      border: 0; border-bottom: 1px solid #f3f4f6; background: #fff;
+      color: #374151; text-align: left; cursor: pointer;
+    }
+    .approval-row:last-child { border-bottom: 0; }
+    .approval-row:hover .approval-name { color: #0a7a4b; }
+    .approval-row:disabled { cursor: default; opacity: .65; }
+    .approval-row:disabled:hover .approval-name { color: #374151; }
+    .approval-name { display: block; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .approval-meta { display: block; font-size: 10px; color: #9ca3af; margin-top: 1px; }
+    .approval-count {
+      align-self: center; min-width: 25px; padding: 3px 6px; border-radius: 10px;
+      background: #dbeafe; color: #1e3a8a; font-size: 11px; font-weight: 700; text-align: center;
+    }
+    .approval-empty { font-size: 11px; color: #6b7280; padding: 3px 0; }
 
     /* ショートカット一覧 */
     .shortcuts {
@@ -111,9 +219,14 @@
 </head>
 <body>
   <div class="header">
-    <div class="header-title">Xero Power</div>
-    <div class="header-ver">v0.9.0</div>
-    <div class="badge badge-free" id="plan-badge">Free</div>
+    <div class="header-row">
+      <div class="header-main">
+        <div class="header-title">Xero Power</div>
+        <div class="header-ver">v0.9.0</div>
+        <div class="badge badge-free" id="plan-badge">Free</div>
+      </div>
+      <button class="header-settings" id="settings-top-btn" type="button">Settings</button>
+    </div>
   </div>
 
   <!-- 使用実績（navTotal > 0 のとき popup.js が display:block にする） -->
@@ -123,6 +236,31 @@
       <strong id="stat-nav">0</strong> navigations
       · ~<strong id="stat-min">0</strong> min saved
     </div>
+  </div>
+
+  <div class="workspace" id="workspace-section">
+    <div class="workspace-head">
+      <div class="workspace-title">Organisation workspace</div>
+      <div class="workspace-count" id="workspace-count">0 of 0 selected</div>
+    </div>
+    <div class="workspace-help">Select organisations, then open their dashboards in separate colour-coded tabs.</div>
+    <div class="workspace-tools" id="workspace-tools">
+      <input class="workspace-search" id="workspace-search" type="search" placeholder="Search organisations" aria-label="Search organisations">
+      <div class="workspace-actions">
+        <span class="workspace-visible-count" id="workspace-visible-count">0 organisations</span>
+        <button class="workspace-action" id="workspace-select-all" type="button">Select all</button>
+        <button class="workspace-action" id="workspace-clear" type="button">Clear</button>
+      </div>
+    </div>
+    <div class="workspace-list" id="workspace-list"></div>
+    <div class="workspace-scroll-hint" id="workspace-scroll-hint">Scroll for more ↓</div>
+    <button class="workspace-open" id="workspace-open" disabled>Open workspace</button>
+  </div>
+
+  <div class="approval-queue" id="approval-section">
+    <div class="approval-title">Practice approval queue</div>
+    <div class="approval-help">Latest counts observed on Xero invoice and bill lists.</div>
+    <div class="approval-list" id="approval-list"></div>
   </div>
 
   <div class="shortcuts">
@@ -152,8 +290,15 @@
   <!-- Pro訴求（Free + 5回以上利用後に popup.js が display:block にする） -->
   <div class="pro-nudge" id="pro-nudge">
     <a class="pro-nudge-inner" id="pro-nudge-btn">
-      <span>Customize my keys</span>
-      <span>→<span class="pro-badge">Pro</span></span>
+      <span>Unlock Solo tools</span>
+      <span>→<span class="pro-badge">Solo Pro</span></span>
+    </a>
+  </div>
+
+  <div class="feedback" id="manage-subscription-section" style="display:none">
+    <a class="feedback-link" href="https://polar.sh/xero-power/portal" target="_blank" rel="noopener">
+      <span>Manage subscription</span>
+      <span class="feedback-arrow">→</span>
     </a>
   </div>
 
@@ -166,7 +311,7 @@
   </div>
 
   <div class="footer">
-    <a class="settings-link" id="settings-btn">⚙ Settings & Pro</a>
+    <a class="settings-link" id="settings-btn">⚙ Settings & Plans</a>
     <span class="version">v0.9.0</span>
   </div>
 
