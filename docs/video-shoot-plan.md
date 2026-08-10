@@ -149,16 +149,26 @@ chrome.storage.local.set({ xp_pro: true, xp_plan: 'practice', xp_pro_owner: true
 
 ### 3-8 の撮り方
 
-一発勝負になりやすいので手順を固定する。
+⚠️ **2026-08-11、最初の手順で失敗した。** 「録画開始 → Submit → 再読み込み → 待つ」だと、
+一番長い待ち時間が録画の中に入り、録画を止めたあとに通知が来た。
 
-1. `Awaiting approval` を開いて件数を記録させる（例: 6件）
-2. **録画を回したまま** 別タブでDraft Billを `Submit for approval`
-3. `Awaiting approval` のタブに戻って再読み込み
-4. 通知バナーが出る → **クリック** → Xeroの一覧が新規タブで開く
+件数の観測は **`Awaiting approval` の一覧が描画されたとき**に走る。そこから通知が出るまでに
+Service Workerの起動とmacOSの配信が挟まるので、数秒〜数十秒ぶれる。
+
+**Submitを録画の外でやる**と待ち時間が縮む。
+
+1. **録画せずに** Draft Bill を `Submit for approval`（件数が増える）
+2. まだ `Awaiting approval` の一覧は開かない
+3. **ここで録画開始**
+4. `Purchases` → `Bills` → `Awaiting approval` を開く
+5. 通知バナーが出る → **クリック** → Xeroの一覧が新規タブで開く
+
+Submitの操作は映像として使わないので、録画の外に出しても損はしない。
 
 **通知は画面の右上に出る**。Chromeウィンドウをそこに被せないように、あらかじめ左寄せにしておく。
 
-失敗したらもう1件Submitすればやり直せる。**準備したDraft Billを2件は残しておく**。
+**出るまで録画を止めないこと。** 1分回してFCPXで無音を切ればいい。止めるのが唯一の失敗パターン。
+失敗したらもう1件Submitすればやり直せる。**Draft Billを2件は残しておく**。
 
 ---
 

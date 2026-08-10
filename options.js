@@ -12,8 +12,7 @@ const CUSTOMER_PORTAL_URL = 'https://polar.sh/xero-power/portal';
 
 // ユーザーの64%がChromeOS。⌘ キーは存在しないので Ctrl 表記に切り替える。
 // /i 必須: userAgentData.platform は "macOS"（小文字m）、navigator.platform は "MacIntel"
-const IS_MAC = false; // 🎬 撮影用の一時変更。撮影後に元へ戻すこと
-// const IS_MAC = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '');
+const IS_MAC = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '');
 
 const MOD_LABEL = IS_MAC ? 'Cmd+' : 'Ctrl+';
 
