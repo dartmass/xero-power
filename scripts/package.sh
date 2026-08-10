@@ -56,7 +56,25 @@ if [ -n "$QA_KEYS" ]; then
   exit 0
 fi
 
-echo "✅ 提出前チェック: 合言葉による解除経路なし"
+# 撮影用に IS_MAC を false 固定する一時変更。入ったまま出すと、Macユーザー全員に
+# Ctrl+K と表示される拡張が出る（プラットフォーム判定が死ぬ）。
+SHOOT_HACK=$(
+  for f in $(unzip -Z1 "$OUT" | grep -E '\.js$'); do
+    unzip -p "$OUT" "$f" | grep -Hn --label="$f" -E "IS_MAC *= *(false|true) *;|🎬" || true
+  done
+)
+if [ -n "$SHOOT_HACK" ]; then
+  echo "┌──────────────────────────────────────────────────────────┐"
+  echo "│  ⚠️  撮影用ビルド — このzipは提出しないこと                │"
+  echo "└──────────────────────────────────────────────────────────┘"
+  echo "  プラットフォーム判定が固定されたままです:"
+  printf '%s\n' "$SHOOT_HACK" | sed 's/^/    /'
+  echo "  git checkout content.js popup.js options.js で戻してから作り直してください。"
+  echo ""
+  exit 0
+fi
+
+echo "✅ 提出前チェック: 合言葉による解除経路なし / プラットフォーム判定は正常"
 echo ""
 echo "Next steps:"
 echo "  1. Go to https://chrome.google.com/webstore/devconsole"

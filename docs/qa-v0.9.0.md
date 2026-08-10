@@ -473,6 +473,54 @@ QA29は通知が**出る**ところまでで終わっている。押したとき
 
 ---
 
+## 🚧 未解決（2026-08-07 中断）— 撮影とセットで再開する
+
+### 撮影を再開するとき
+
+Macで撮ると拡張のUIが `Cmd+K` と表示する。ユーザーの64%はChromeOSなので、
+**撮影中だけ非Mac扱いにする**。`content.js` / `popup.js` / `options.js` の
+
+```js
+const IS_MAC = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || "");
+```
+
+を `const IS_MAC = false;` に変えて拡張を再読み込みするだけ。押すキーはCmdのままで、
+表示だけが `Ctrl` になる。**撮影後は必ず戻す。**
+`scripts/package.sh` が検知して提出手順を止めるので、戻し忘れても事故にはならない。
+
+### 直したこと（実機で効果未確認）
+
+- `brActiveLine()` を追加。`brConfirm` / `brClickAction` / `brCandidates` が `lines[brIdx]` ではなく
+  **フォーカスのある行**に追従する。Xeroはフォームを触ると行を再描画して拡張の印を消すため、
+  `brIdx` は当てにならない。マウスで行を選んだ場合も同じ。
+  実機診断: `brIdx=-1 / フォーカス行=13` でズレを確認済み
+- `brCandKey()` を追加。候補選択中のキーを入力欄の内外どちらからも拾う。
+  Space でチェックボックスにフォーカスが移るため、従来は続く Enter が Xero に食われていた
+- `brSay()` を追加。確定できなかった理由を画面下中央に `position:fixed` で表示
+
+### ❌ 残っている問題
+
+**`brSay()` の表示がユーザーに見えない。**（2026-08-07 実機で「理由が見えない」と報告）
+
+最初は緑のバー内に出していたが、Find & Match のパネルが縦に長く確定ボタンが最下部にあるため、
+バーが画面外だった。`position:fixed` の浮動表示に変えたが**それでも見えていない**。原因未特定。
+
+次に確かめること:
+
+- `#xp-br-notice` が DOM に生成されているか（`document.getElementById('xp-br-notice')`）
+- 生成されていて見えないなら: `z-index` 負け / Xero側の `overflow:hidden` を持つ祖先 /
+  `transform` を持つ祖先による `position:fixed` の封じ込め
+- そもそも `brSay()` が呼ばれているか（`brConfirm` が `button` を見つけていない可能性）
+- 4.5秒で消えるので、押した直後を見ていない可能性も潰す
+
+### 中断した撮影
+
+`docs/video-shoot-plan.md` の Phase 1 は 1-1〜1-9 まで撮影済み。
+**1-10（Match候補の確定）と 1-11（Create の保存）が未撮影** — 上のバグのため。
+Phase 2（Solo Pro）・Phase 3（Practice Pro）は未着手。
+
+---
+
 ## 前提条件（引っかかりやすい点）
 
 - **トラッキング必須化**: その組織にトラッキングカテゴリが必要（Demo Companyは「Region」）。未設定の組織では**何も起きないのが正常**

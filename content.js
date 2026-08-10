@@ -877,6 +877,17 @@
     return [...document.querySelectorAll("#statementLines .line")];
   }
 
+  // brIdx は当てにならない。Xeroはフォームを触ると行を再描画するので、
+  // 拡張が付けた印ごと消える。マウスで別の行を触られた場合も同じ。
+  // 実機で「Ctrl+Enterは届いているのに、別の行のOKを探して空振り」を確認した。
+  // フォーカスが行の中にあるなら、そこが今の作業行。brIdx を追従させる。
+  function brActiveLine(lines) {
+    const list = lines || brLines();
+    const focused = list.findIndex((l) => l.contains(document.activeElement));
+    if (focused >= 0) brIdx = focused;
+    return list[brIdx] || null;
+  }
+
   function brHighlight(lines, idx) {
     lines.forEach((l, i) => {
       l.style.outline         = i === idx ? "2px solid #0a7a4b" : "";
@@ -896,7 +907,7 @@
 
   function brClickAction(actionClass, actionType) {
     const lines = brLines();
-    const line  = lines[brIdx];
+    const line  = brActiveLine(lines);
     if (!line) return;
     const btn = line.querySelector(actionClass);
     if (!btn) return;
@@ -942,7 +953,7 @@
   let brCandPendingMove = 0;
 
   function brCandidates() {
-    const line = brLines()[brIdx];
+    const line = brActiveLine();
     if (!line) return [];
 
     // Xero has shipped both div-based and table-based versions of Find & Match.
@@ -1020,6 +1031,41 @@
     brCandidates()[brCandIdx]?.querySelector('input[type="checkbox"]')?.click();
   }
 
+  // 候補選択中のキー処理。入力欄の内外どちらからも呼ぶ。
+  // Space でチェックボックスを押すとフォーカスがそこへ移り、以降は「入力欄の中」
+  // 扱いになる。そこを Xero に素通しすると、バーに Enter OK と出ているのに
+  // 確定できない状態になる（実機で確認）。処理したら true を返す。
+  function brCandKey(e) {
+    if (!brCandMode) return false;
+    const cands = brCandidates();
+    if (!cands.length) { brCandExit(); return false; }
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      brCandIdx = e.key === "ArrowDown"
+        ? Math.min(brCandIdx + 1, cands.length - 1)
+        : Math.max(brCandIdx - 1, 0);
+      brCandHighlight(cands, brCandIdx);
+      return true;
+    }
+    if (e.key === " " || e.key === "Spacebar") {
+      e.preventDefault();
+      brCandToggle();
+      return true;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      brConfirm();
+      return true;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      brCandExit();
+      return true;
+    }
+    return false;
+  }
+
   function brButtonLabel(el) {
     return String(
       el?.getAttribute?.("aria-label") ||
@@ -1039,7 +1085,7 @@
 
   function brConfirm() {
     const lines = brLines();
-    const line  = lines[brIdx];
+    const line  = brActiveLine(lines);
     if (!line) return false;
     let button = null;
     if (brLastAction === "match") {
@@ -1053,7 +1099,15 @@
         "button.save-button,a.okayButton,button.okayButton"
       );
     }
-    if (!button || button.disabled || button.getAttribute("aria-disabled") === "true") return false;
+    if (!button) {
+      brSay("Nothing to confirm on this line yet");
+      return false;
+    }
+    if (button.disabled || button.getAttribute("aria-disabled") === "true") {
+      // 例: 候補を2件選ぶと合計が明細と合わず、XeroがReconcileを無効にする。
+      brSay(brFailReason(line) || `Xero has not enabled "${brButtonLabel(button)}" yet`);
+      return false;
+    }
     button.click();
     brLastAction = null;
     brCandMode   = false;
@@ -1087,6 +1141,43 @@
 
   // 候補選択中は使えるキーが変わるので、バーの中身も差し替える。
   // 使えないキーを並べ続けると案内として嘘になる。
+  // 押しても無反応、が一番困る。壊れているのか自分が間違えたのか判断できない。
+  // 確定できなかった理由を出す。
+  // ⚠️ 緑のバーには出さないこと。Find & Match のパネルは縦に長く、
+  //    確定ボタンは一番下にある。そこを見ているときバーは画面外にある（実機で確認）。
+  //    見ている場所に出す必要があるので、スクロールに依存しない fixed で出す。
+  let brNoticeTimer = null;
+  function brSay(msg) {
+    clearTimeout(brNoticeTimer);
+    let el = document.getElementById("xp-br-notice");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "xp-br-notice";
+      el.style.cssText = [
+        "position:fixed", "left:50%", "bottom:24px", "transform:translateX(-50%)",
+        "z-index:2147483000", "max-width:min(560px,90vw)",
+        "background:#b45309", "color:#fff",
+        "padding:10px 16px", "border-radius:8px",
+        "font:13px/1.5 -apple-system,sans-serif",
+        "box-shadow:0 6px 20px rgba(0,0,0,.28)",
+        "pointer-events:none", "text-align:center",
+      ].join(";");
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;   // textContent なのでXero由来の文字列でも安全
+    el.style.display = "block";
+    brNoticeTimer = setTimeout(() => { el.style.display = "none"; }, 4500);
+  }
+
+  // Xeroが出している警告文をそのまま借りる。こちらで文言を推測すると外れる。
+  function brFailReason(line) {
+    const alert = [...line.querySelectorAll(
+      '[role="alert"],[class*="error"],[class*="warning"],[class*="alert"]'
+    )].find((el) => el.getClientRects().length && (el.textContent || "").trim());
+    const text = alert ? String(alert.textContent).replace(/\s+/g, " ").trim() : "";
+    return text.slice(0, 90);
+  }
+
   function brRenderBar() {
     const bar = document.getElementById("xp-br-bar");
     if (!bar) return;
@@ -1183,6 +1274,10 @@
       //   ・↑↓ で行に戻れない（マウスを使うしかない袋小路になる）
       //   ・Enter が届かず、バーに書いてある「Save」に到達できない
       // という状態になる（実機で確認）。
+      // 候補選択中は入力欄の内外を問わず先に処理する。Space のあとフォーカスが
+      // チェックボックスへ移るため、下の inField 分岐に落とすと Enter が届かない。
+      if (brCandKey(e)) return;
+
       if (inField) {
         if (e.key === "Escape") {
           e.preventDefault();
@@ -1225,28 +1320,6 @@
           return;
         }
       }
-      if (brCandMode) {
-        const cands = brCandidates();
-        if (!cands.length) {
-          brCandExit();                      // 候補が消えた（確定済み等）
-        } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-          e.preventDefault();
-          brCandIdx = e.key === "ArrowDown"
-            ? Math.min(brCandIdx + 1, cands.length - 1)
-            : Math.max(brCandIdx - 1, 0);
-          brCandHighlight(cands, brCandIdx);
-          return;
-        } else if (e.key === " " || e.key === "Spacebar") {
-          e.preventDefault();
-          brCandToggle();
-          return;
-        } else if (e.key === "Escape") {
-          e.preventDefault();
-          brCandExit();
-          return;
-        }
-      }
-
       const lines = brLines();
       if (!lines.length) return;
 
@@ -2018,6 +2091,7 @@
     html.xp-dark [style*="background-image"],
     html.xp-dark #wac-top-panel,
     html.xp-dark #xp-br-bar,
+    html.xp-dark #xp-br-notice,
     html.xp-dark #xp-backdrop,
     html.xp-dark #xp-toast,
     html.xp-dark #xp-tk-warning,
