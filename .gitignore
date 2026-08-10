@@ -1,3 +1,10 @@
 # ビルド成果物（Chrome Web Store 提出用パッケージ）
 xero-power-v*.zip
 .DS_Store
+
+# 撮影素材。1本20〜30MBあるので入れると履歴が一気に重くなる。
+# ファイルはそのまま置いておいて構わない（gitが見ないだけ）。
+screen_video/
+*.mov
+*.mp4
+スクリーンショット*.png
