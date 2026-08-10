@@ -4,12 +4,25 @@
   <meta charset="UTF-8">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* Chromeのポップアップ上限は 800×600。プランによって出る節が増えるので、
+       Solo Proでworkspace(272px)、Practice Proでさらに承認キュー(142px)が乗ると
+       600pxを超え、Chromeが最大サイズの枠を出して白い余白ができる（実機で確認）。
+       高さを自前で抑えて内側でスクロールさせ、どのプランでも同じ寸法にする。
+       html にも幅を指定するのは、Chromeの自動サイズ決定に幅を推測させないため。 */
+    html { width: 300px; }
     body {
       width: 300px;
+      max-height: 580px;
+      overflow-y: auto;
+      overflow-x: hidden;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: #fff;
       color: #111827;
     }
+    body::-webkit-scrollbar { width: 8px; }
+    body::-webkit-scrollbar-track { background: #f3f4f6; }
+    body::-webkit-scrollbar-thumb { background: #c8cdd8; border-radius: 4px; }
+    body::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
     .header {
       background: #0a7a4b;

@@ -97,6 +97,7 @@ chrome.storage.local.remove(['xp_pro','xp_plan','xp_pro_owner','xp_license_local
 | 38 | Polar通信障害（定期再検証） | ✅ | network/5xxでは既存の有料状態を維持（`background.js`側） |
 | 39 | Polar通信障害（初回Activate） | ✅ | **QA38の穴を塞いだ**。38は`background.js`だけを見ており、客が最初に踏む`options.js`のActivateは未検査だった。旧実装は429/5xx/通信断でも即`false`を返し、当たるはずのSolo側の問い合わせに到達しないまま「Invalid license key」と表示していた。11通りの応答パターンで自動確認 |
 | 40 | 通知を**押した**ときの遷移 | ✅ | **QA29の穴**。29は通知が出るところまでで押していなかった。A（テスト通知）・B（増加通知→Bills一覧が新規タブで開く）・C（権限を後から許可しSWを再起動しない並び）をすべて実機で確認 |
+| 41 | popupの寸法（プラン別） | ✅ | **Solo Proにした実機で発覚。** workspace(272px)が出て661pxとなりChromeのポップアップ上限600pxを超え、最大枠(800×600)が出て白い余白ができていた。Practice Proでは承認キュー(142px)も乗り約800px。高さを580pxで抑え内側スクロールに変更。Free相当354px（余白なし）／Solo・Practice とも300×580、300px超の要素ゼロを実測 |
 
 ---
 
