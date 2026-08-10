@@ -499,7 +499,7 @@ const IS_MAC = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navi
   Space でチェックボックスにフォーカスが移るため、従来は続く Enter が Xero に食われていた
 - `brSay()` を追加。確定できなかった理由を画面下中央に `position:fixed` で表示
 
-### ❌ 別クライアントの帳簿に着地する（最優先・未修正）
+### ⚠️ 別クライアントの帳簿に着地する（検出は実装済み・予防は未着手）
 
 **2026-08-11 実機で発生。** 3組織（Demo Company / aaa / bbb）のタブを開いた状態で、
 **Demo Companyのホームから Ctrl+K → Bank Reconciliation を選んだら bbb の照合画面に着地した。**
@@ -523,14 +523,52 @@ const IS_MAC = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navi
 
 簿記担当にとって「別のクライアントの帳簿を開く」は最悪の事故。**提出前に必ず対処すること。**
 
-対策案（要実機検証）:
+**Bank Recだけの問題ではなかった。** パレット39件を数えたところ、**23件が組織IDを持たない**。
 
-1. 先に組織スコープのURL（`/app/{orgId}/homepage` など）へ寄ってセッションの組織を固定し、
-   それからBank Recへ移動する。2段遷移になるが確実な可能性。**この方式が効くか未検証**
-2. 着地後に `ocOrgId()` が意図した組織と一致するか検証し、違えば大きく警告して止める。
-   1が効かない場合でも**これは必ず入れる**（黙って別の帳簿を見せないため）
-3. 同様に組織IDを持たない他の旧.aspx行き先（パレット39件のうち相当数）も同じ問題を抱える。
-   Bank Recだけの話ではないので、`buildUrl` の層で解くのが筋
+```
+New Invoice          /AccountsReceivable/Edit.aspx
+New Bill             /AccountsPayable/Edit.aspx
+New Manual Journal   /Journal/Edit.aspx
+Contacts             /Contacts/Search.aspx
+Chart of Accounts    /GeneralLedger/ChartOfAccounts.aspx
+…全23件
+```
+
+見るだけでなく **他社の帳簿に伝票を起こし始める**経路が含まれる。
+
+#### 実装したもの（2026-08-11・検出と復帰）
+
+`go()` で遷移する直前、行き先URLが組織IDを持たない場合だけ、出発時の組織を
+`sessionStorage` に記録する（タブ単位・60秒で失効）。着地後 `bootFeatures()` で
+`ocOrgId()` と突き合わせ、違っていたら画面最上部に赤い警告バーを出す。
+
+> **Wrong organisation**
+> Xero opened bbb, not Demo Company (Global). Check before you enter anything.
+> [ Switch to Demo Company (Global) ] [ Dismiss ]
+
+- Switchボタンは `/app/{orgId}/homepage` へ遷移する（Organisation workspaceが使っている既知の形）
+- **口座記憶の汚染も止めた**。別組織に着地した状態で `xp_bank_accounts` を書くと、
+  その組織の記憶を他社の口座IDで上書きし、以後ずっと間違った口座へ飛ぶ。
+  `brRememberAccountSoon` は組織の判定が済むまで待ち、不一致なら記憶しない
+- 自動テスト12件で確認（記録の要否・一致/不一致・失効・判定不能・sessionStorage不可）
+- 1280px / 900px で描画確認。はみ出し・横スクロールなし
+
+#### まだやっていないこと（予防）
+
+**着地してから気づく段階までしか来ていない。** そもそも間違った組織に行かせない方法は未検証:
+
+1. 遷移前に `/app/{orgId}/homepage` へ寄ってセッションの組織を固定してから旧URLへ移動する。
+   **効くかどうか未検証。** パレット全体の遷移を壊しうるので、実機で確かめるまで入れない
+2. 旧`.aspx`に新UIの組織付き等価URLがあるならそれに差し替える。
+   ⚠️ **URLを推測しないこと。** 過去に28件中15件が死んでいた原因がそれ。
+   Xero自身のナビの `a[href]` から採取すること
+
+#### 実機で確かめること
+
+- 3組織のタブを開いた状態で Ctrl+K → New Bill。別組織に着地したとき赤いバーが出るか
+- Switchボタンで意図した組織に戻れるか
+- 正しく着地したときにバーが**出ない**こと（誤検出がないこと）
+- 別組織に着地したあと `xp_bank_accounts` が汚れていないこと
 
 ### ❌ 残っている問題
 

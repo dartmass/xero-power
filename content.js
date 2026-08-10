@@ -94,10 +94,13 @@
   //    ナビが出るまで待ってから保存する。
   function brRememberAccountSoon(attempt = 0) {
     if (!new URLSearchParams(location.search).get("accountId")) return;
-    if (!ocOrgId()) {
+    // 別組織に着地したときに覚えると、その組織の記憶を他社の口座IDで汚す。
+    // 次に正しく開いてもずっと間違った口座に飛ぶことになるので、判定を待つ。
+    if (!navIntentResolved || !ocOrgId()) {
       if (attempt < 20) setTimeout(() => brRememberAccountSoon(attempt + 1), 300);
       return;
     }
+    if (navMismatch) return;
     brRememberAccount();
   }
 
@@ -763,7 +766,132 @@
     if (!item) return;
     trackUsage(item.label);
     closePalette();
-    window.location.href = buildUrl(item.path);
+    const url = buildUrl(item.path);
+    navRecordIntent(url);
+    window.location.href = url;
+  }
+
+  // ── 別の組織に着地したことを検出する ─────────────────────────
+  // パレット39件のうち23件は組織IDを持たない旧URL（New Invoice / New Bill /
+  // Contacts など）。Xeroはそれらの組織を「セッションの現在の組織」から決めるが、
+  // セッションはタブ間で共有される。複数組織のタブを開いていると最後に読み込んだ
+  // タブの組織が勝ち、意図と違うクライアントの帳簿に着地する。
+  // 2026-08-11 実機で発生: Demo Companyのホームから Bank Reconciliation を選び bbb に着地。
+  // Organisation workspace（Solo Pro）は複数組織のタブを一括で開く機能なので、
+  // この状態が常態になる。
+  //
+  // ⚠️ ここでやるのは検出だけ。遷移前にセッションの組織を固定できるかは未検証で、
+  //    パレット全体の遷移を壊しうるため入れていない。
+  //    最低限の要件は「黙って別の帳簿を見せない」こと。見るだけならまだしも、
+  //    New Invoice で入力を始めてから気づくのが最悪の事故になる。
+  const NAV_INTENT_KEY = "xp_nav_intent";
+  const NAV_INTENT_TTL = 60000;
+  let navIntentResolved = false;
+  let navMismatch = false;
+
+  function navReadIntent() {
+    try {
+      const raw = sessionStorage.getItem(NAV_INTENT_KEY);
+      if (!raw) return null;
+      const intent = JSON.parse(raw);
+      if (!intent?.org || Date.now() - Number(intent.at || 0) > NAV_INTENT_TTL) return null;
+      return intent;
+    } catch {
+      return null;   // プライベートウィンドウ等でsessionStorageが使えない
+    }
+  }
+
+  function navClearIntent() {
+    try { sessionStorage.removeItem(NAV_INTENT_KEY); } catch { /* 同上 */ }
+  }
+
+  function navRecordIntent(url) {
+    // 組織IDを含むURLはXeroがURL側を尊重するので対象外
+    if (/\/app\/![A-Za-z0-9_-]+/.test(url)) return;
+    const org = ocOrgId();
+    if (!org) return;
+    try {
+      sessionStorage.setItem(NAV_INTENT_KEY, JSON.stringify({ org, at: Date.now() }));
+    } catch { /* 同上 */ }
+  }
+
+  function navFinish(mismatch) {
+    navMismatch = mismatch;
+    navIntentResolved = true;
+    navClearIntent();
+  }
+
+  function navCheckIntent(attempt = 0) {
+    const intent = navReadIntent();
+    if (!intent) { navFinish(false); return; }
+
+    // 旧ページでは、組織IDはDOMのリンクが描画されるまで分からない
+    const actual = ocOrgId();
+    if (!actual) {
+      if (attempt < 20) { setTimeout(() => navCheckIntent(attempt + 1), 300); return; }
+      navFinish(false);   // 判定できないものを事故扱いしない
+      return;
+    }
+
+    navFinish(actual !== intent.org);
+    if (navMismatch) navWarnWrongOrg(intent.org, actual);
+  }
+
+  function navWarnWrongOrg(wantedId, actualId) {
+    const render = (orgs) => {
+      const name = (id) => orgs?.[id]?.name || id;
+      navRenderWarning(name(wantedId), name(actualId), wantedId);
+    };
+    chrome?.storage?.local?.get(["xp_org_colors"])
+      .then((d) => render(d.xp_org_colors))
+      .catch(() => render(null));
+  }
+
+  function navRenderWarning(wantedName, actualName, wantedId) {
+    document.getElementById("xp-org-warning")?.remove();
+
+    const bar = document.createElement("div");
+    bar.id = "xp-org-warning";
+    bar.style.cssText = [
+      "position:fixed", "top:0", "left:0", "right:0", "z-index:2147483000",
+      "background:#b91c1c", "color:#fff",
+      "padding:11px 16px", "font:13px/1.45 -apple-system,sans-serif",
+      "display:flex", "gap:14px", "align-items:center",
+      "box-shadow:0 2px 12px rgba(0,0,0,.3)",
+    ].join(";");
+
+    const text = document.createElement("div");
+    text.style.cssText = "flex:1;min-width:0";
+    const head = document.createElement("strong");
+    head.textContent = "Wrong organisation";
+    const body = document.createElement("div");
+    body.style.cssText = "font-size:12px;opacity:.95;margin-top:1px";
+    // textContent で入れる。組織名はXeroのDOM由来なので埋め込まない。
+    body.textContent = `Xero opened ${actualName}, not ${wantedName}. Check before you enter anything.`;
+    text.append(head, body);
+
+    const btn = document.createElement("button");
+    btn.textContent = `Switch to ${wantedName}`;
+    btn.style.cssText = [
+      "flex:0 0 auto", "border:0", "border-radius:6px", "padding:7px 13px",
+      "background:#fff", "color:#b91c1c", "font:inherit", "font-weight:700",
+      "cursor:pointer",
+    ].join(";");
+    btn.addEventListener("click", () => {
+      location.href = `https://go.xero.com/app/${encodeURIComponent(wantedId)}/homepage`;
+    });
+
+    const close = document.createElement("button");
+    close.textContent = "Dismiss";
+    close.style.cssText = [
+      "flex:0 0 auto", "border:1px solid rgba(255,255,255,.6)", "border-radius:6px",
+      "padding:7px 11px", "background:transparent", "color:#fff", "font:inherit",
+      "cursor:pointer",
+    ].join(";");
+    close.addEventListener("click", () => bar.remove());
+
+    bar.append(text, btn, close);
+    document.body.prepend(bar);
   }
 
   function openPalette() {
@@ -2092,6 +2220,7 @@
     html.xp-dark #wac-top-panel,
     html.xp-dark #xp-br-bar,
     html.xp-dark #xp-br-notice,
+    html.xp-dark #xp-org-warning,
     html.xp-dark #xp-backdrop,
     html.xp-dark #xp-toast,
     html.xp-dark #xp-tk-warning,
@@ -2867,6 +2996,9 @@
   // ─────────────────────────────────────────
   function bootFeatures() {
     closePalette();
+    // パレットで指定した組織に着地したかを毎回確かめる。
+    // 組織IDを持たない旧URLはセッション頼みなので、ここでしか気づけない。
+    navCheckIntent();
     const path = location.pathname.toLowerCase();
 
     if (path.includes("bankrec")) {
