@@ -12,10 +12,13 @@ const CUSTOMER_PORTAL_URL = 'https://polar.sh/xero-power/portal';
 
 // ユーザーの64%がChromeOS。⌘ キーは存在しないので Ctrl 表記に切り替える。
 // /i 必須: userAgentData.platform は "macOS"（小文字m）、navigator.platform は "MacIntel"
-const IS_MAC = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '');
+const IS_MAC = false; // 🎬 撮影用の一時変更。撮影後に元へ戻すこと
+// const IS_MAC = /mac|iphone|ipad/i.test(navigator.userAgentData?.platform || navigator.platform || '');
+
+const MOD_LABEL = IS_MAC ? 'Cmd+' : 'Ctrl+';
 
 const DEFAULTS = {
-  palette:  IS_MAC ? 'Cmd+K' : 'Ctrl+K',
+  palette:  MOD_LABEL + 'K',
   match:    'M',
   create:   'C',
   transfer: 'T',
@@ -350,7 +353,13 @@ function applyPlanState(plan, isOwner) {
 // ── UI: ショートカット値をフィールドに反映 ────────────────────
 function loadShortcuts(sc) {
   SC_FIELDS.forEach(id => {
-    $('sc-' + id).value = sc[id] ?? DEFAULTS[id];
+    const saved = sc[id] ?? DEFAULTS[id];
+    // 保存値は「保存した端末の表記」のまま残る（Macで保存すると "Cmd+P"）。
+    // 実際に効くのは末尾の1文字だけなので、修飾キーの表記は必ず今の端末に直す。
+    // ユーザーの64%がChromeOSで、Cmdキーが存在しない。
+    $('sc-' + id).value = id === 'palette'
+      ? MOD_LABEL + (String(saved).match(/([a-z0-9])\s*$/i)?.[1] || 'K').toUpperCase()
+      : saved;
   });
 }
 
