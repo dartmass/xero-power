@@ -306,10 +306,19 @@ async function registerOrganisations(message) {
       changed = true;
       return;
     }
-    if (entry.name !== entry.id && existing.name !== entry.name) {
-      organisations[entry.id] = { ...existing, name: entry.name };
-      changed = true;
-    }
+    if (entry.name === entry.id || existing.name === entry.name) return;
+
+    // ⚠️ Xeroのナビは幅が狭いと組織名を略称にする。
+    //    "Demo Company (Global)" → "DCG"、"bbb" → "b"（DevToolsを開くと再現）。
+    //    短いほうで上書きすると、別クライアント警告が
+    //    「Xero opened DCG, not b.」になって読めない。
+    //    取り違えを防ぐための警告なので、名前は長いほうを残す。
+    //    代償: Xero側で本当に短い名前へ改名しても追随しない。表示だけの話なので許容する。
+    const isPlaceholder = existing.name === entry.id;
+    if (!isPlaceholder && entry.name.length <= existing.name.length) return;
+
+    organisations[entry.id] = { ...existing, name: entry.name };
+    changed = true;
   });
 
   if (changed) await chrome.storage.local.set({ xp_org_colors: organisations });
