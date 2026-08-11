@@ -842,9 +842,12 @@
       const name = (id) => orgs?.[id]?.name || id;
       navRenderWarning(name(wantedId), name(actualId), wantedId);
     };
-    chrome?.storage?.local?.get(["xp_org_colors"])
-      .then((d) => render(d.xp_org_colors))
-      .catch(() => render(null));
+    // ⚠️ chrome?.storage?.local?.get(...) は「呼べなければ undefined」を返すので、
+    //    そこに .then を繋ぐと TypeError で警告ごと消える。名前が引けなくても
+    //    警告は必ず出す。組織IDだけでも出したほうが黙るよりずっとよい。
+    const p = chrome?.storage?.local?.get?.(["xp_org_colors"]);
+    if (!p?.then) { render(null); return; }
+    p.then((d) => render(d?.xp_org_colors)).catch(() => render(null));
   }
 
   function navRenderWarning(wantedName, actualName, wantedId) {
@@ -852,10 +855,14 @@
 
     const bar = document.createElement("div");
     bar.id = "xp-org-warning";
+    // Xero側のCSSに高さを潰されないよう、寸法まわりは全部明示する。
+    // 実機で2行目の下端が切れた（2026-08-12）。
     bar.style.cssText = [
       "position:fixed", "top:0", "left:0", "right:0", "z-index:2147483000",
+      "box-sizing:border-box", "height:auto", "min-height:62px", "overflow:visible",
       "background:#b91c1c", "color:#fff",
-      "padding:11px 16px", "font:13px/1.45 -apple-system,sans-serif",
+      "padding:12px 16px 14px", "margin:0",
+      "font:13px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
       "display:flex", "gap:14px", "align-items:center",
       "box-shadow:0 2px 12px rgba(0,0,0,.3)",
     ].join(";");
