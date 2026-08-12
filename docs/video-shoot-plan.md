@@ -99,6 +99,13 @@ Demo Company (Global) で以下を先に作っておく。撮影を止めて作�
 | 1-10 | **Match候補をキーボードで選ぶ** | 同上 | 15秒 | M → ↑↓ → Space → Enter。**ここで初めて明細が1件消える** |
 | 1-11 | **Create → Cmd/Ctrl+Enter で保存** | 同上 | 15秒 | C → 入力 → 保存。明細がもう1件消える |
 
+⚠️ **1-10 / 1-11 は必ず Free で撮ること。**
+Practice Proのままだと、銀行照合のトラッキング必須化（QA44）がCreateの保存を止めてしまう。
+Settings画面のコンソールで:
+```js
+chrome.storage.local.remove(['xp_pro','xp_plan','xp_pro_owner','xp_license_local_qa'])
+```
+
 **1-4を撮り忘れない。** Freeパートで一番効くのは「拡張なしだと何クリックか」の対比です。
 
 **区切り**: 各カットの後、マウスを画面右下に寄せて3秒静止。
@@ -146,6 +153,24 @@ chrome.storage.local.set({ xp_pro: true, xp_plan: 'practice', xp_pro_owner: true
 | 3-6 | **Find & Recode 索引** | Find and recode 結果 | 25秒 | A-Z / Z-A / 絞り込み / 項目クリック→元行へスクロール＋緑ハイライト |
 | 3-7 | **承認キューのpopup** | popup | 12秒 | 組織別・種別別の件数。行をクリックしてXeroが開く |
 | 3-8 | **増加通知**（最難関・最後） | Bills | 30秒 | 下記 |
+| 3-9 | **銀行照合のトラッキング必須化** | Bank Rec | 20秒 | ★**Practice Proで一番強い画。** 下記 |
+
+### 3-9 の撮り方（2026-08-12 追加）
+
+**1-11 と同じ操作を、Practice Pro でもう一度やるだけ。** 並べると差が一目で分かる。
+
+1. Practice Proに戻し、`require tracking categories` がONであることを確認
+2. Bank Recで `C` → Who / What を入力、**Regionは空のまま**
+3. `Cmd/Ctrl+Enter` → **止まる**。Region欄が赤枠、画面下に「This line needs a tracking category」
+4. Regionを選ぶ → 赤枠が消える
+5. `Cmd/Ctrl+Enter` → 通る
+
+**なぜこれが一番強いか**: 3-2〜3-4（請求書・Billのガードレール）は ApprovalMax もやっている。
+**銀行照合は誰もやっていない**（承認ワークフロー製品は書類を吸い上げて回す構造なので、
+承認という概念の無い銀行照合には構造上届かない）。
+そしてMTDの露出は銀行照合に集中する。**ここが唯一「うちにしか無い」画。**
+
+編集では **1-11（Freeでは通る）→ 3-9（Practice Proでは止まる）** の順で並べる。
 
 ### 3-8 の撮り方
 
