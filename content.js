@@ -1166,6 +1166,83 @@
     brCandidates()[brCandIdx]?.querySelector('input[type="checkbox"]')?.click();
   }
 
+  // ── 銀行照合のトラッキング必須化（Practice Pro）─────────────────
+  // なぜここが要るか:
+  //   Xero自身がMTD for Income Taxの事業切り分けに「トラッキングカテゴリを使え」と
+  //   案内しており、トラッキングの無い明細は四半期申告の集計から**除外される**。
+  //   そのトラッキングの必須化を、Xeroは2025年7月に「作らない」と明言している。
+  //   承認ワークフロー製品（ApprovalMax等）は「書類を吸い上げ→承認→Xeroへ戻す」
+  //   構造なので、承認という概念が無い銀行照合には構造上届かない。
+  //   個人事業主・大家の取引はほぼ銀行照合から生まれるため、露出はここに集中する。
+  //
+  // 実DOM（2026-08-12 Demo Company で採取）:
+  //   div.tracking > div.x-form-field-wrap > input.x-form-text
+  //     未選択: class に x-form-empty-field が付き、value はカテゴリ名（"Region"）
+  //     選択済: x-form-empty-field が消え、value は選択肢名（"Eastside"）
+  //   ⚠️ idは ext-comp-1011 のようなExtJSの自動採番なので使わないこと。
+  //   ⚠️ 「valueが空か」でも判定できない。未選択でもカテゴリ名が入っている。
+  //   div.tracking の数 = その組織のトラッキングカテゴリ数。
+  const BR_TK_BOX   = "div.tracking";
+  const BR_TK_INPUT = "input.x-form-text";
+  const BR_TK_EMPTY = "x-form-empty-field";
+
+  function brTrackingFields(line) {
+    return [...(line?.querySelectorAll(BR_TK_BOX) || [])]
+      .map((box) => box.querySelector(BR_TK_INPUT))
+      .filter((el) => el && el.getClientRects().length);
+  }
+
+  // 未選択のトラッキング欄。Matchやトラッキング未設定の組織では常に空配列。
+  function brTrackingMissing(line) {
+    return brTrackingFields(line).filter((el) => el.classList.contains(BR_TK_EMPTY));
+  }
+
+  function brTrackingClear(line) {
+    (line || document).querySelectorAll("[data-xp-br-tk]").forEach((el) => {
+      el.style.outline = "";
+      el.style.borderRadius = "";
+      el.removeAttribute("data-xp-br-tk");
+    });
+  }
+
+  function brTrackingMark(fields) {
+    fields.forEach((el) => {
+      el.style.outline = "2px solid #dc2626";
+      el.style.borderRadius = "3px";
+      el.setAttribute("data-xp-br-tk", "1");
+    });
+  }
+
+  // 止めるべきなら true。止めたときは印と理由を出す。
+  function brTrackingBlocks(line) {
+    if (!tkEnabled || !tkPractice) return false;
+    brTrackingClear(line);
+    const missing = brTrackingMissing(line);
+    if (!missing.length) return false;
+    brTrackingMark(missing);
+    // 明細1件に対してカテゴリ欄が複数ある場合がある。「行」と数えないこと。
+    brSay(missing.length === 1
+      ? "This line needs a tracking category"
+      : `This line is missing ${missing.length} tracking categories`);
+    return true;
+  }
+
+  // マウスでOKを押された場合。キーボード経路は brConfirm 側で見ている。
+  // ⚠️ capture で、Xero自身のハンドラより先に止める必要がある。
+  window.addEventListener(
+    "click",
+    (e) => {
+      if (!brActive || !tkEnabled || !tkPractice) return;
+      const ok = e.target?.closest?.("a.okayButton,button.okayButton,button.save-button");
+      if (!ok) return;
+      const line = ok.closest("#statementLines .line");
+      if (!line || !brTrackingBlocks(line)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    },
+    true
+  );
+
   // 候補選択中のキー処理。入力欄の内外どちらからも呼ぶ。
   // Space でチェックボックスを押すとフォーカスがそこへ移り、以降は「入力欄の中」
   // 扱いになる。そこを Xero に素通しすると、バーに Enter OK と出ているのに
@@ -1222,6 +1299,8 @@
     const lines = brLines();
     const line  = brActiveLine(lines);
     if (!line) return false;
+    // トラッキング欄が無い行（Match等）では常に false なので、ここで一律に見てよい
+    if (brTrackingBlocks(line)) return false;
     let button = null;
     if (brLastAction === "match") {
       button = brFindButton(line, ["reconcile", "ok", "okay"], "a.okayButton");
@@ -1288,14 +1367,18 @@
     if (!el) {
       el = document.createElement("div");
       el.id = "xp-br-notice";
+      // Xero側のCSSに寸法を潰されないよう全部明示する。
+      // 組織警告バーで同じ手当てをして実機で出るようになった（2026-08-12）。
       el.style.cssText = [
         "position:fixed", "left:50%", "bottom:24px", "transform:translateX(-50%)",
-        "z-index:2147483000", "max-width:min(560px,90vw)",
+        "z-index:2147483000",
+        "box-sizing:border-box", "width:auto", "height:auto",
+        "max-width:min(560px,90vw)", "min-height:40px", "overflow:visible",
         "background:#b45309", "color:#fff",
-        "padding:10px 16px", "border-radius:8px",
-        "font:13px/1.5 -apple-system,sans-serif",
+        "padding:11px 16px 13px", "margin:0", "border-radius:8px",
+        "font:13px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
         "box-shadow:0 6px 20px rgba(0,0,0,.28)",
-        "pointer-events:none", "text-align:center",
+        "pointer-events:none", "text-align:center", "white-space:normal",
       ].join(";");
       document.body.appendChild(el);
     }
