@@ -1519,23 +1519,33 @@
       // 候補リストが出ている間は ↑↓ を候補の移動に使う。
       // M/C/T/D は下の通常処理へ落として、アクションを選び直せるようにする。
       // 非同期表示が遅かった場合も、次のキー操作時に候補を取り直す。
-      if (brLastAction === "match" && !brCandMode && !brCandEnter()) {
-        // Find & Match is rendered asynchronously. Keep early arrow presses for
-        // the candidate list instead of accidentally moving to another statement row.
-        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-          e.preventDefault();
-          brCandPendingMove += e.key === "ArrowDown" ? 1 : -1;
-          brCandPendingMove = Math.max(0, brCandPendingMove);
-          brCandWait();
-          return;
-        }
-        if (e.key === "Escape") {
-          e.preventDefault();
-          brLastAction = null;
-          brCandPendingMove = 0;
-          clearTimeout(brCandTimer);
-          brRenderBar();
-          return;
+      if (brLastAction === "match" && !brCandMode) {
+        // Xeroが候補を自動提示した行では、あとから Find & Match を押して初めて
+        // 一覧が出る。そのとき候補モードに入る「きっかけになったキー」を
+        // ここで消費しないと、下の switch にも流れて明細行が動いてしまう。
+        if (brCandEnter()) {
+          // 入った直後の↑↓は「一覧に入る」操作。先頭を選んだ状態で止める。
+          // ここで更に1つ動かすと、先頭がハイライトされる瞬間が見えない。
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); return; }
+          if (brCandKey(e)) return;
+        } else {
+          // Find & Match は非同期に描画される。到着前の↑↓は明細行を動かさず、
+          // 候補リスト用に取っておく。
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            brCandPendingMove += e.key === "ArrowDown" ? 1 : -1;
+            brCandPendingMove = Math.max(0, brCandPendingMove);
+            brCandWait();
+            return;
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            brLastAction = null;
+            brCandPendingMove = 0;
+            clearTimeout(brCandTimer);
+            brRenderBar();
+            return;
+          }
         }
       }
       const lines = brLines();
