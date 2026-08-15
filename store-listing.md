@@ -11,7 +11,8 @@ Ctrl+K command palette + keyboard shortcuts for Xero. Jump to any screen in 2 se
 
 ## Full description (paste into Chrome Web Store)
 
-> 掲載文の先頭には変更履歴を置く運用。新バージョンごとに1ブロック追記する。
+> Chrome Web Store の説明欄は**プレーンテキスト**。太字も表も効かないので、
+> 下の ``` の中をそのままコピーして貼る。先頭に変更履歴、以下本文。
 
 ```
 v0.9.0
@@ -30,7 +31,7 @@ v0.8.0
 ・You can now send questions and feature requests straight from the extension popup
 
 v0.7.1
-・Fixed custom command palette shortcut not taking effect (Solo Pro and Practice Pro)
+・Fixed custom command palette shortcut not taking effect (paid plans)
 ・Shortcut changes now apply instantly — no page reload needed
 ・Shortcuts now display correctly on ChromeOS and Windows (Ctrl instead of the Mac-only Cmd symbol)
 ・Interface text is now consistently in English
@@ -43,126 +44,134 @@ v0.5.0
 ・Invoicing "Approve" default button
 
 v0.4.1
-・Customize your Bank Rec shortcuts, remap any key to fit your workflow, and unlock settings via the new paid plans
+・Customise your Bank Rec shortcuts, remap any key to fit your workflow
 
 v0.3.0
-・⭐ Most Used — the command palette now learns from you
-```
+・Most Used — the command palette now learns from you
 
-**Stop clicking through menus. Start flying through Xero.**
 
-Xero Power adds the keyboard-first workflow that Xero power users have been asking for — a command palette, bank reconciliation shortcuts, a safer Approve button, and a colour for every organisation you look after.
+Stop clicking through menus. Start flying through Xero.
 
----
+Xero Power adds the keyboard-first workflow Xero users keep asking for — a command palette, bank reconciliation you can drive without a mouse, a safer Approve button, and a colour for every organisation you look after.
 
-**Ctrl+K Command Palette**
+
+CTRL+K COMMAND PALETTE
 
 Press Ctrl+K anywhere in Xero — on Windows, on a Chromebook, or Cmd+K on a Mac — to open a searchable list of 39 screens.
 
-• Bank Reconciliation → type "rec" → Enter
-• New Invoice → type "inv" → Enter
-• Chart of Accounts → type "chart" → Enter
-• Aged Receivables → type "aged" → Enter
-• Any report, contact, or settings page — just type it
+・Bank Reconciliation — type "rec", press Enter
+・New Invoice — type "inv", press Enter
+・Chart of Accounts — type "chart", press Enter
+・Aged Receivables — type "aged", press Enter
+・Any report, contact, or settings page — just type it
 
-No more: Dashboard → Accounting → Bank Accounts → Reconcile. Just press Ctrl+K and go.
+No more Dashboard, Accounting, Bank Accounts, Reconcile. Press Ctrl+K and go.
 
 The palette learns which screens you open most and floats them to the top, so after a week you barely type anything.
 
----
+Every destination was rechecked against live Xero for this release. Fifteen of them had quietly gone dead as Xero moved pages — including every report.
 
-**Bank Reconciliation Keyboard Shortcuts**
+
+RECONCILE WITHOUT THE MOUSE
 
 Stop reaching for your mouse on every single transaction.
 
-| Key | Action |
-|-----|--------|
-| ↑ / ↓ | Move between transactions |
-| M | Match to an existing transaction |
-| C | Create a new transaction |
-| T | Transfer between accounts |
-| D | Mark for discussion |
-| Enter | Confirm and move on |
+・Up and Down — move between statement lines
+・M — match to an existing transaction
+・C — create a new transaction
+・T — transfer between accounts
+・D — mark for discussion
+・Space — pick a transaction out of the match list
+・Enter — reconcile
+・Ctrl+Enter — save a transaction you have created
+・Esc — back to the statement lines
 
-A hint bar at the top of the reconciliation screen shows the shortcuts while you work, and the row you are on is highlighted so you never lose your place.
+A hint bar shows the shortcuts while you work, and the row you are on is highlighted so you never lose your place. When Xero will not let a line reconcile, it tells you why instead of doing nothing.
 
----
 
-**A safer Approve button**
+A SAFER APPROVE BUTTON
 
-Xero's default button on an invoice is "Approve & email" — so one stray click sends an email to your client. 440 people asked Xero to let them change it. Xero said there are no plans to and locked the thread.
+Xero's default button on an invoice is "Approve & email", so one stray click sends an email to your client. 440 people asked Xero to let them change it. Xero said there are no plans to, and locked the thread.
 
-Xero Power changes the default to plain **Approve**. Emailing is still one click away in the dropdown, exactly where it was. Nothing is removed; the default is just the safe one. You can switch it back off in settings at any time.
+Xero Power makes plain Approve the default. Emailing is still one click away in the dropdown, exactly where it was. Nothing is removed — the default is just the safe one, and you can switch it back in settings.
 
----
 
-**Dark mode**
+KNOW WHICH BOOKS YOU ARE IN
 
-Xero has no plans to add one. 533 people asked. Flip a switch in the extension's settings and every Xero screen goes dark — invoices, bank rec, reports, the lot.
+If you look after several organisations, they all look the same. That is how a transaction ends up in the wrong client's file.
 
----
+Give each organisation its own navigation bar colour and you know where you are before you read a word.
 
-**Stop miscoded lines before they land (Practice Pro)**
+Xero Power also watches for a subtler version of the same mistake: 23 of Xero's screens carry no organisation in their web address, so they open whichever organisation your session moved to last. Open one of those from a different tab and you can land in another client's books with nothing on screen to tell you. Xero Power says so, and offers to take you back.
+
+Two organisation colours are free. Solo Pro and Practice Pro cover as many as you run.
+
+
+DARK MODE
+
+Xero has no plans to add one. 533 people asked. Flip a switch and every Xero screen goes dark — invoices, bank rec, reports, the lot.
+
+
+STOP MISCODED LINES BEFORE THEY LAND (PRACTICE PRO)
 
 If your practice runs tracking categories, one untagged line means a report that does not add up and someone reopening the file weeks later.
 
-Turn on the requirement and Xero Power blocks **Approve** — on invoices and on bills — until every line has a tracking category, showing you exactly which lines are missing one. Drafts still save normally, so nobody loses work in progress.
+Turn the requirement on and Approve is blocked — on invoices, on bills, and in bank reconciliation — until every populated line carries a tracking category. The lines missing one are marked. Drafts still save normally, so nobody loses work in progress.
 
-Practices can also require a description on every populated line. Both checks are configurable and report their own missing-line counts before approval.
+Bank reconciliation matters most here. For Making Tax Digital, Xero's own guidance is to separate businesses with tracking categories, and a line without one is left out of the quarterly totals sent to HMRC. Xero has said making the field mandatory is not on its roadmap, and suggests finding the gaps afterwards with Find & Recode — after the return has gone. For sole traders and landlords, nearly every transaction arrives through the bank feed, which is exactly where nothing else is watching.
 
-**Keep approval work visible (Practice Pro)**
+Practices can also require a description on every populated line. Both checks are configurable and report their own counts before approval.
 
-When you open Xero's invoice or bill lists, Xero Power records the Awaiting Approval count shown on the page. The popup keeps the latest observed queue for each organisation, and an optional local Chrome notification tells you when a previously seen count increases.
+It is a guardrail, not a lock. Someone who disables the extension can approve without it. It is there to catch the honest slip, which is what actually costs you time.
 
-On Find & Recode, a searchable Description index sorts the currently visible descriptions A-Z or Z-A and jumps to the original Xero row. It never rearranges Xero's transaction table.
 
-It is a guardrail, not a lock — someone who disables the extension can approve without it. It is there to catch the honest slip, which is what actually costs you time.
+KEEP APPROVAL WORK VISIBLE (PRACTICE PRO)
 
----
+When you open Xero's invoice or bill lists, Xero Power notes the Awaiting Approval count shown on the page. The popup keeps the latest count for each organisation, and an optional Chrome notification tells you when a queue you have already seen grows. Nothing is polled in the background.
 
-**Colour-code your organisations**
+On Find & Recode, a searchable Description index sorts what is on screen A to Z or Z to A and jumps to the original row. It never rearranges Xero's table.
 
-If you look after several Xero organisations, every one of them looks the same — and that is how a transaction ends up in the wrong set of books.
 
-Give each organisation its own navigation bar colour and you know where you are before you read a word. Open Xero's organisation switcher once, or refresh from settings, to bring the available organisations into one colour and workspace list.
+SOLO PRO WORKFLOW TOOLS
 
-Two organisations are free. Solo Pro and Practice Pro cover as many as you run.
-
----
-
-**Solo Pro workflow tools**
-
-Search and open selected organisations into separate, colour-coded dashboard tabs from the extension popup. Solo Pro also mirrors page controls above long lists and remembers supported items-per-page selectors.
+Search your organisations and open the ones you want as separate, colour-coded dashboard tabs. Solo Pro also mirrors page controls above long lists and remembers items-per-page selectors.
 
 Every automation is conservative: if Xero Power cannot identify the native Xero action exactly, it leaves the page alone.
 
----
 
-**Plans**
+PLANS
 
-| Plan | Price | Best for | Includes |
-|------|-------|----------|----------|
-| Free | $0 | Any Xero user who wants fewer clicks | Command palette, Bank Rec shortcuts, safer Approve default, dark mode, and 2 organisation colours |
-| Solo Pro | $14.99/month | Solo bookkeepers and Xero power users | Unlimited organisation colours, custom shortcuts, multi-org workspace, list workflow tools, and priority email support |
-| Practice Pro | $44.99/month | Bookkeeping and accounting practices | Everything in Solo Pro, plus configurable coding guardrails, approval queue watch, Find & Recode review tools, and practice-level support |
+Free — $0
+For any Xero user who wants fewer clicks. Command palette, bank reconciliation shortcuts, safer Approve default, dark mode, wrong-organisation warning, and two organisation colours.
 
----
+Solo Pro — $14.99/month
+For solo bookkeepers and Xero power users. Everything free, plus unlimited organisation colours, custom shortcuts, the multi-organisation workspace, list workflow tools, and priority email support.
 
-**Built for bookkeepers and accountants**
+Practice Pro — $44.99/month
+For bookkeeping and accounting practices. Everything in Solo Pro, plus the coding guardrails, approval queue watch, Find & Recode review tools, and practice-level support.
+
+
+BUILT FOR BOOKKEEPERS AND ACCOUNTANTS
 
 If you spend hours in Xero every day — reconciling hundreds of transactions, chasing invoices, pulling reports — Xero Power gives you back real time.
 
 Inspired by RightTool for QuickBooks. Now Xero users get the same treatment.
 
----
 
-**Privacy**
+PRIVACY
 
-Xero Power processes the Xero page currently visible in your browser to provide its workflow tools. Visible descriptions and tracking fields are checked locally and are not stored; optional approval queue counts are stored on your device. Accounting data, credentials, and company information are never sent to Xero Power or another server. No analytics, no tracking, no ads.
+Xero Power works on the Xero page in front of you. To do its job it reads what is on that page — including tracking fields, line descriptions, and Awaiting Approval counts. None of it is stored except the approval counts, which stay on your device and are discarded after 30 days. Your accounting data, credentials, and company information never leave your browser. No analytics, no tracking, no ads.
 
-For paid plans, the saved license key is checked with Polar when activated, when Chrome starts, and approximately once every 24 hours so cancellations and plan changes take effect. Xero Power also opens an outside page in a new tab when you choose to upgrade, manage your subscription, or send feedback — Polar's checkout, Polar's customer portal, and a Google form respectively. Full privacy policy: https://dartmass.github.io/xero-power/privacy-policy.html
+The extension contacts an outside service in five situations, and no others:
 
----
+・You activate a paid licence, when Chrome starts, and about once every 24 hours — your licence key goes to Polar so cancellations and plan changes take effect
+・You click Upgrade — Polar's checkout opens in a new tab. You pay Polar directly and we never see your payment details
+・You click Manage subscription — Polar's customer portal opens in a new tab
+・You click the feedback link — a Google form opens. Nothing is sent unless you fill it in
+・You uninstall — a one-question survey opens. Closing the tab sends nothing
+
+Full privacy policy: https://dartmass.github.io/xero-power/privacy-policy.html
+```
 
 ## Screenshots needed (take in Xero Demo Company)
 
