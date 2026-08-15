@@ -22,7 +22,34 @@
 
 ## 構成
 
-### つかみ（0:00 – 0:12）
+### 宣言（0:00 – 0:04）
+
+黒背景にテロップ3枚。映像は無し。
+
+```
+Dark mode. A safe Approve button.
+A colour per client. Required tracking.
+
+1,572 people asked Xero for these.
+Xero said no to all four.
+
+So here they are.
+```
+
+**根拠（Xero Product Ideas・すべて "Not in pipeline"）**
+
+| 機能 | 票 |
+|---|---|
+| Organisation settings - Dark mode | 533 |
+| Invoicing - Select default for 'Approve' Button | 444 |
+| Organisation Settings - Ability to set colour of org | 308 |
+| Tracking - Make mandatory / required | 287 |
+| | **1,572** |
+
+この動画の主要機能は**全部Xeroが断ったもの**。偶然ではなく、`OPEN_EXPLICIT_NO` から選んだ結果。
+「便利です」はこちらの主張だが、**票数とXeroの回答は検証可能な事実**なので、そこから始める。
+
+### つかみ（0:04 – 0:16）
 
 | 素材 | 尺 | テロップ |
 |---|---|---|
@@ -139,6 +166,12 @@ FCPXで**タイトルを1つ作って保存**し、複製して文字だけ差�
 ## テロップ一覧（出す順・そのまま打ち込む）
 
 ```
+0a  Dark mode. A safe Approve button.
+    A colour per client. Required tracking.
+0b  1,572 people asked Xero for these.
+    Xero said no to all four.
+0c  So here they are.
+
 1   Purchases → Bills → Awaiting approval
 2   Ctrl + K
 3   39 screens. No mouse.
