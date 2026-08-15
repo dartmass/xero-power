@@ -129,7 +129,47 @@ FCPXで**タイトルを1つ作って保存**し、複製して文字だけ差�
 
 ---
 
-## 撮り直しが要るかもしれないもの
+## 使わない素材
 
 - **1-9 の後半**（`1-9_後半はバグ発見したので不要.mov`）— 前半だけ使う
-- **`画面収録 2026-08-11 4.43.47.mov`** — 何を撮ったか不明。中身を確認してから判断
+- **`画面収録 2026-08-11 4.43.47.mov`** — 使わない
+
+---
+
+## テロップ一覧（出す順・そのまま打ち込む）
+
+```
+1   Purchases → Bills → Awaiting approval
+2   Ctrl + K
+3   39 screens. No mouse.
+
+4   Xero's default sends an email to your client
+5   440 people asked Xero to change it
+6   Xero said no
+7   Now it just approves. Email is still one click away.
+
+8   Up / Down · M · C · T · D
+9   Space to pick
+10  Enter to reconcile
+11  Ctrl + Enter to save
+
+12  A colour for every client
+
+13  Open every client at once
+14  Solo Pro                          ← 右下に小さく
+
+15  Approve is blocked until the line is coded
+16  Drafts still save. Nobody loses work.
+17  Practice Pro                      ← 右下に小さく
+
+18  Xero leaves untracked lines out of your MTD quarterly totals
+19  and won't make the field required
+20  So we did
+
+21  Xero Power
+22  Free — palette, shortcuts, dark mode, 2 organisation colours
+23  Solo Pro $14.99 / Practice Pro $44.99
+24  Chrome Web Store
+```
+
+**20 で一拍置く。** ここが動画の主張なので、次のカットに急がない。
