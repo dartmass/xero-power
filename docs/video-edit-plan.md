@@ -76,7 +76,13 @@ So here they are.
 
 | 素材 | 尺 | テロップ |
 |---|---|---|
+| 1-6 冒頭 | — | `Xero Power → Settings` ← **導線** |
 | 1-6（ダークモード） | 6秒 | `Dark mode — every Xero screen` |
+
+⚠️ **このカットは拡張の設定画面から始まる。** 前が Xero の請求書画面なので、
+導線を出さないと「どうやってそこへ行った？」になる。
+つかみの `Purchases → Bills → Awaiting approval` と**同じ矢印の書き方に揃える**と、
+「これは経路の説明だ」と一目で分かる。
 
 **冒頭で名前を出しているので、本編に無いと宣言が嘘になる。**
 撮影素材は ON → 別画面へ移動 → OFF の12秒。**ONにしてから別画面へ移る6秒だけ使う**（OFFに戻す部分は要らない）。
@@ -111,7 +117,10 @@ So here they are.
 
 | 素材 | 尺 | テロップ |
 |---|---|---|
+| 2-4 冒頭 | — | `Xero Power → Open workspace` ← **導線** |
 | 2-4（ワークスペース） | 10秒 | `Open every client at once` ／ 右下に小さく `Solo Pro` |
+
+⚠️ **このカットは拡張のpopupから始まる。** ダークモードと同じ理由で導線が要る。
 
 **2-3（キー変更）・2-5・2-6 は落とす。** 尺が足りない。単体では弱い。
 
@@ -274,48 +283,76 @@ Cmd+Enter    → 通る
 
 ---
 
-## テロップ一覧（出す順・そのまま打ち込む）
+## テロップ一覧（素材 × テロップ・出す順）
+
+| # | 素材 | テロップ | 出す位置 |
+|---|---|---|---|
+| 0a | 黒背景 | `Dark mode. A safe Approve button.`<br>`A colour per client. Required tracking.` | — |
+| 0b | 黒背景 | `1,572 people asked Xero for these.`<br>`Xero said no to all four.` | **一番長く見せる** |
+| 0c | 黒背景 | `So here they are.` | 短く切って映像へ |
+| 1 | **1-4** | `Purchases → Bills → Awaiting approval` | クリックし始めた瞬間 |
+| 2 | **1-2** | `Ctrl + K` | パレットが開いた瞬間 |
+| 3 | **1-2** | `39 screens. No mouse.` | カットの終わり際 |
+| 4 | **1-5** | `Xero's default sends an email to your client` | ▾を開いて見せている間 |
+| 5 | **1-5** | `440 people asked Xero to change it` | |
+| 6 | **1-5** | `Xero said no` | 短く |
+| 7 | **1-5** | `Now it just approves. Email is still one click away.` | 主ボタンが `Approve` に見えている間 |
+| 8 | **1-6 冒頭** | `Xero Power → Settings` | **導線。設定画面が出た瞬間** |
+| 9 | **1-6** | `Dark mode — every Xero screen` | 画面が暗くなった瞬間 |
+| 10 | **1-9** | `Up / Down · M · C · T · D` | キーを押し始めた瞬間 |
+| 11 | **1-10** | `Space to pick` | **1回目のSpace** |
+| 12 | **1-10** | `Enter to reconcile` | **`Totals match` が出た直後** |
+| 13 | **1-11** | `Ctrl + Enter to save` | 保存キーを押した瞬間 |
+| 14 | **1-7** | `A colour for every client` | 色が変わった瞬間 |
+| 15 | **2-4 冒頭** | `Xero Power → Open workspace` | **導線。popupが出た瞬間** |
+| 16 | **2-4** | `Open every client at once` | タブが一斉に開いた瞬間 |
+| 17 | **2-4** | `Solo Pro` | 右下に小さく・カット全体 |
+| 18 | **3-4** | `Approve is blocked until the line is coded` | **赤枠が出た瞬間** |
+| 19 | **3-5** | `Drafts still save. Nobody loses work.` | Draft保存が通った瞬間 |
+| 20 | **3-4 / 3-5** | `Practice Pro` | 右下に小さく・両カット通して |
+| 21 | **3-9** | `Xero leaves untracked lines out of your MTD quarterly totals` | Regionが空のまま止まった状態 |
+| 22 | **3-9** | `and won't make the field required` | 同上 |
+| 23 | **3-9** | `So we did` | **止まった状態で一拍置く** |
+| 24 | 静止画 | `Xero Power` | |
+| 25 | 静止画 | `Free — palette, shortcuts, dark mode, 2 organisation colours` | |
+| 26 | 静止画 | `Solo Pro $14.99 / Practice Pro $44.99` | |
+| 27 | 静止画 | `Chrome Web Store` | |
+
+**23 で一拍置く。** ここが動画の主張なので、次のカットに急がない。
+
+### 打ち込み用（文字だけ）
 
 ```
-0a  Dark mode. A safe Approve button.
-    A colour per client. Required tracking.
-0b  1,572 people asked Xero for these.
-    Xero said no to all four.
-0c  So here they are.
-
-1   Purchases → Bills → Awaiting approval
-2   Ctrl + K
-3   39 screens. No mouse.
-
-4   Xero's default sends an email to your client
-5   440 people asked Xero to change it
-6   Xero said no
-7   Now it just approves. Email is still one click away.
-
-8   Dark mode — every Xero screen
-
-9   Up / Down · M · C · T · D
-10  Space to pick
-11  Enter to reconcile
-12  Ctrl + Enter to save
-
-13  A colour for every client
-
-14  Open every client at once
-15  Solo Pro                          ← 右下に小さく
-
-16  Approve is blocked until the line is coded
-17  Drafts still save. Nobody loses work.
-18  Practice Pro                      ← 右下に小さく
-
-19  Xero leaves untracked lines out of your MTD quarterly totals
-20  and won't make the field required
-21  So we did
-
-22  Xero Power
-23  Free — palette, shortcuts, dark mode, 2 organisation colours
-24  Solo Pro $14.99 / Practice Pro $44.99
-25  Chrome Web Store
+Dark mode. A safe Approve button.
+A colour per client. Required tracking.
+1,572 people asked Xero for these.
+Xero said no to all four.
+So here they are.
+Purchases → Bills → Awaiting approval
+Ctrl + K
+39 screens. No mouse.
+Xero's default sends an email to your client
+440 people asked Xero to change it
+Xero said no
+Now it just approves. Email is still one click away.
+Xero Power → Settings
+Dark mode — every Xero screen
+Up / Down · M · C · T · D
+Space to pick
+Enter to reconcile
+Ctrl + Enter to save
+A colour for every client
+Xero Power → Open workspace
+Open every client at once
+Solo Pro
+Approve is blocked until the line is coded
+Drafts still save. Nobody loses work.
+Practice Pro
+Xero leaves untracked lines out of your MTD quarterly totals
+and won't make the field required
+So we did
+Xero Power
+Free — palette, shortcuts, dark mode, 2 organisation colours
+Solo Pro $14.99 / Practice Pro $44.99
+Chrome Web Store
 ```
-
-**21 で一拍置く。** ここが動画の主張なので、次のカットに急がない。
