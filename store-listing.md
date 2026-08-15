@@ -173,6 +173,61 @@ The extension contacts an outside service in five situations, and no others:
 Full privacy policy: https://dartmass.github.io/xero-power/privacy-policy.html
 ```
 
+## Privacy tab — 貼り付け用（Dev Dashboard の「プライバシー」）
+
+> ⚠️ ここは**審査で最も見られる**。実装を変えたら必ず合わせること。
+> 2026-08 時点の実装: 承認ガードレールがトラッキング欄・摘要を読む／承認待ち件数を端末に保存／
+> ライセンスキーを24時間ごとに再検証する。「accounting dataを読まない」は**もう書けない**。
+
+### 単一用途の説明
+
+```
+Xero Power makes working in xero.com faster from the keyboard: a Ctrl+K command palette, shortcuts for bank reconciliation, a safer default on the Approve button, and optional checks that flag a missing tracking category or description before a line is approved. It reads the Xero page you are on in order to do this. Your accounting data stays in your browser.
+```
+
+### storage が必要な理由
+
+```
+Stores your settings and a few local records on your own device: keyboard shortcut preferences, dark mode, the approval guardrail toggles, organisation names and the colour you gave each one, which organisations you picked for the workspace, a remembered items-per-page choice and last-used bank account, a count of how often you open each screen (this powers the "Most used" list in the palette), an onboarding flag, the latest Awaiting Approval count seen for each organisation, and your licence key if you bought a paid plan. Only the licence key ever leaves the device.
+```
+
+### alarms が必要な理由
+
+```
+Schedules one repeating check, roughly every 24 hours, that asks Polar whether a saved paid licence is still active. Without it, a cancelled or downgraded subscription would keep paid features unlocked until the browser happened to be restarted. Nothing else uses alarms.
+```
+
+### notifications が必要な理由
+
+```
+Optional, and only requested at the moment a user turns on Awaiting Approval Watch. When the user opens a Xero invoice or bill list, the extension notes the Awaiting Approval count shown on that page. If a count it has already seen grows, it shows a local Chrome notification so the user knows work is waiting for them. Nothing is polled in the background, and no notification comes from a server.
+```
+
+### ホスト権限 が必要な理由
+
+```
+*.xero.com — The extension injects the command palette and the keyboard shortcut handling into Xero pages. To do its job it reads what is on the page in front of the user: which screen it is, which organisation it belongs to, and — only when the optional approval checks are switched on — whether a line has a tracking category and a description. It also notes the Awaiting Approval count shown on invoice and bill lists. None of this is transmitted; the checks run inside the page and the counts stay on the device.
+
+api.polar.sh — Used to check a paid licence key with Polar, our payment provider: when the user clicks Activate, when Chrome starts, and roughly once every 24 hours so that cancellations and plan changes take effect. Only the licence key is sent. Nothing is sent at all for users on the free plan.
+```
+
+### リモートコード
+
+「いいえ、リモートコードを使用していません」のまま。外部スクリプトは読み込んでいない。
+
+### データ使用
+
+- ✅ **認証に関する情報** — ライセンスキーをPolarへ送るため
+- ✅ **ユーザーのアクティビティ** — 画面ごとの利用回数を端末に記録するため
+- ❌ 財務状況や支払いに関する情報 — 承認ガードレールは明細を**読む**が、保存も送信もしないため「収集」に当たらないと判断
+- ❌ その他すべて
+
+### プライバシーポリシーURL
+
+```
+https://dartmass.github.io/xero-power/privacy-policy.html
+```
+
 ## Screenshots needed (take in Xero Demo Company)
 
 1. **Command palette open** — press Ctrl+K, type "rec", show Bank Reconciliation highlighted
