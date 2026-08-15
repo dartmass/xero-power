@@ -1,6 +1,6 @@
 # デモ動画 編集台本（FCPX）
 
-**尺の目標: 90秒。** 音声なし、テロップだけで進める。
+**尺の目標: 95秒。** 音声なし、テロップだけで進める。
 置き場所は `welcome.html` の `VIDEO_ID`（初回インストール時に全員が見る）とストア掲載、Reddit。
 
 素材は `screen_video/`。
@@ -72,7 +72,19 @@ So here they are.
 
 ---
 
-### 銀行照合（0:29 – 0:49）
+### ダークモード（0:29 – 0:35）
+
+| 素材 | 尺 | テロップ |
+|---|---|---|
+| 1-6（ダークモード） | 6秒 | `Dark mode — every Xero screen` |
+
+**冒頭で名前を出しているので、本編に無いと宣言が嘘になる。**
+撮影素材は ON → 別画面へ移動 → OFF の12秒。**ONにしてから別画面へ移る6秒だけ使う**（OFFに戻す部分は要らない）。
+「別の画面に行っても暗いまま」が見えるところまでが価値。
+
+---
+
+### 銀行照合（0:35 – 0:55）
 
 | 素材 | 尺 | テロップ |
 |---|---|---|
@@ -84,7 +96,7 @@ So here they are.
 
 ---
 
-### 迷子防止（0:49 – 0:54）
+### 迷子防止（0:55 – 1:00）
 
 | 素材 | 尺 | テロップ |
 |---|---|---|
@@ -95,7 +107,7 @@ So here they are.
 
 ---
 
-### 複数組織（0:54 – 1:04）※Solo Pro
+### 複数組織（1:00 – 1:10）※Solo Pro
 
 | 素材 | 尺 | テロップ |
 |---|---|---|
@@ -105,7 +117,7 @@ So here they are.
 
 ---
 
-### 承認ガードレール（1:04 – 1:24）※Practice Pro
+### 承認ガードレール（1:10 – 1:30）※Practice Pro
 
 | 素材 | 尺 | テロップ |
 |---|---|---|
@@ -122,7 +134,7 @@ So here they are.
 
 ---
 
-### 締め（1:24 – 1:29）
+### 締め（1:30 – 1:35）
 
 静止画で十分。
 
@@ -177,7 +189,7 @@ FCPXで**タイトルを1つ作って保存**し、複製して文字だけ差�
 | 1-3 | `Ctrl+K` 開くだけ（⭐Most used が上位に出ている） | ✕ |
 | 1-4 | **キーを使わず** Purchases → Bills → Awaiting approval をクリック | ✅ **つかみ前半** |
 | 1-5 | Draft Invoice を開く。主ボタンが `Approve`、▾の先頭が `Approve & email`。**押さない** | ✅ 承認ボタン |
-| 1-6 | ダークモード ON → 別画面へ移動 → OFF | ✕ |
+| 1-6 | ダークモード ON → 別画面へ移動 → OFF | ✅ **ONにして移動する6秒だけ** |
 | 1-7 | 組織切替メニュー aaa → bbb → Demo Company。ナビバーの色が変わる | ✅ 迷子防止 |
 | 1-8 | Settings。3組織目の色ボタンが無効＋Pro案内 | ✕ |
 
@@ -280,28 +292,30 @@ Cmd+Enter    → 通る
 6   Xero said no
 7   Now it just approves. Email is still one click away.
 
-8   Up / Down · M · C · T · D
-9   Space to pick
-10  Enter to reconcile
-11  Ctrl + Enter to save
+8   Dark mode — every Xero screen
 
-12  A colour for every client
+9   Up / Down · M · C · T · D
+10  Space to pick
+11  Enter to reconcile
+12  Ctrl + Enter to save
 
-13  Open every client at once
-14  Solo Pro                          ← 右下に小さく
+13  A colour for every client
 
-15  Approve is blocked until the line is coded
-16  Drafts still save. Nobody loses work.
-17  Practice Pro                      ← 右下に小さく
+14  Open every client at once
+15  Solo Pro                          ← 右下に小さく
 
-18  Xero leaves untracked lines out of your MTD quarterly totals
-19  and won't make the field required
-20  So we did
+16  Approve is blocked until the line is coded
+17  Drafts still save. Nobody loses work.
+18  Practice Pro                      ← 右下に小さく
 
-21  Xero Power
-22  Free — palette, shortcuts, dark mode, 2 organisation colours
-23  Solo Pro $14.99 / Practice Pro $44.99
-24  Chrome Web Store
+19  Xero leaves untracked lines out of your MTD quarterly totals
+20  and won't make the field required
+21  So we did
+
+22  Xero Power
+23  Free — palette, shortcuts, dark mode, 2 organisation colours
+24  Solo Pro $14.99 / Practice Pro $44.99
+25  Chrome Web Store
 ```
 
-**20 で一拍置く。** ここが動画の主張なので、次のカットに急がない。
+**21 で一拍置く。** ここが動画の主張なので、次のカットに急がない。
