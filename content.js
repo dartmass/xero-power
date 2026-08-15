@@ -1507,7 +1507,15 @@
         // 保存は修飾キー付きにして衝突を避ける。
         if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
           e.preventDefault();
-          brConfirm();
+          // ExtJSのコンボは、候補が開いたままだと値が確定していない。見た目には
+          // 入っていてもXeroは「勘定科目が未設定」と判断し、自前のエラーを出す
+          // （実機で確認: "You must set a payee, account and tax rate…"）。
+          // Whyは必須ではないので、What で選び切らずに保存しようとする人は必ず踏む。
+          // ⚠️ blurすると activeElement から行を特定できなくなるので、
+          //    brActiveLine() を先に呼んで brIdx を今の行に固定してから外す。
+          brActiveLine();
+          document.activeElement?.blur?.();
+          setTimeout(brConfirm, 0);
           return;
         }
         return;                            // それ以外は Xero に渡す
