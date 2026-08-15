@@ -17,7 +17,9 @@ Ctrl+K command palette + keyboard shortcuts for Xero. Jump to any screen in 2 se
 v0.9.0
 ・Dark mode — 533 of you asked Xero for this
 ・Colour-code your organisations — give each one its own nav bar colour so you always know which set of books you are in
-・Require a tracking category before an invoice or bill can be approved (Practice Pro)
+・Tells you when Xero has opened a different organisation than the one you set out from. 23 of Xero's screens carry no organisation in their address and follow whichever tab moved last, so this is easier to do than it sounds — and worst noticed after you have started typing
+・Reconcile from the keyboard — arrow through the transactions Xero offers, Space to pick them, Enter to reconcile, Ctrl+Enter to save one you have created. Esc puts you back on the statement rows
+・Require a tracking category before a line is approved — on invoices, on bills, and now in bank reconciliation (Practice Pro). Xero leaves untracked lines out of the quarterly totals it sends to HMRC for MTD, and has said it will not make the field mandatory
 ・Require a line description before an invoice or bill can be approved (Practice Pro)
 ・Watch Awaiting Approval counts by organisation and notify when a seen queue grows (Practice Pro)
 ・Search and sort a non-destructive Description index on Find & Recode results (Practice Pro)
