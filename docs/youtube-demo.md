@@ -1,111 +1,137 @@
-# YouTube Demo — Xero Power
+# YouTube — Xero Power v0.9.0 デモ動画
 
-## SEO
+動画の中身は `docs/video-edit-plan.md`。ここは**掲載文**だけ。
 
-**Title**
+⚠️ 旧版（v0.7時代・Approveボタン単体の切り口）は破棄した。今回は3プラン全体の紹介。
+
+---
+
+## タイトル
+
+**採用案**
+
 ```
-Change Xero's default Approve button (free Chrome extension) + hidden Ctrl+K shortcuts
+Xero dark mode + a safer Approve button: 4 things Xero said it won't build
 ```
 
-**Description**
+**代案**
+
 ```
-Every time you approve a bill or invoice in Xero, the default button is "Approve & email" — and one wrong click sends an unintended email to your client. 440 users asked Xero to change this. Xero said no. So I built a free Chrome extension that does it.
+1,572 people asked Xero for these features. Xero said no.
+```
+```
+4 things Xero won't build for you — free Chrome extension
+```
 
-What Xero Power does:
-• Changes the default Approve button so it no longer sends email (email is still one click away)
-• Adds a Ctrl+K command palette — jump to any Xero screen without touching the mouse
-• Adds keyboard shortcuts for Bank Reconciliation: navigate rows, Match, Create, Transfer, Confirm — all from the keyboard
+**選び方**: 採用案は先頭に `Xero dark mode` を置いている。
+「xero dark mode」「xero approve button」で検索する人に当たるため。
+代案1は引きが強いが**検索語が1つも入っていない**ので、既に知っている人にしか届かない。
 
-Free on the Chrome Web Store. No account, no subscription, no data collected.
+---
 
-→ Install free: [Chrome Web Store link]
+## 概要欄
+
+```
+Xero has a list of things people keep asking for. These four are all marked "not in pipeline" — Xero has said it will not build them.
+
+・Dark mode — 533 votes
+・Choosing what the Approve button does, so it stops emailing your client — 444 votes
+・A colour per organisation, so you know whose books you are in — 308 votes
+・Making a tracking category required before a line is approved — 287 votes
+
+So I built them, as a Chrome extension for xero.com.
+
+Install (free): https://chromewebstore.google.com/detail/aikgpmhkhmmppadcnijgcljehhjchcmp
+
+──────────────────────
+What it does
+──────────────────────
+
+Ctrl+K anywhere in Xero opens a searchable list of 39 screens. Type "rec" and press Enter to land on bank reconciliation. It learns which screens you use and floats them to the top.
+
+Bank reconciliation runs from the keyboard: arrow between statement lines, M to match, C to create, T to transfer, Space to pick a transaction out of the match list, Enter to reconcile, Ctrl+Enter to save. A hint bar shows the keys while you work.
+
+The Approve button on an invoice defaults to "Approve & email", so one stray click emails your client. Xero Power makes plain Approve the default. Emailing stays one click away in the dropdown.
+
+Dark mode covers every Xero screen.
+
+Each organisation gets its own navigation bar colour. The extension also warns you when Xero has opened a different organisation than the one you set out from — 23 of Xero's screens carry no organisation in their address and follow whichever tab moved last.
+
+──────────────────────
+For practices
+──────────────────────
+
+Approval guardrails block Approve until every populated line carries a tracking category and a description — on invoices, on bills, and in bank reconciliation. Drafts still save, so nobody loses work in progress.
+
+Bank reconciliation is the one that matters. For Making Tax Digital, Xero's own guidance is to separate businesses with tracking categories, and a line without one is left out of the quarterly totals sent to HMRC. Xero has said making the field required is not on its roadmap, and suggests finding the gaps afterwards with Find & Recode — after the return has gone.
+
+──────────────────────
+Plans
+──────────────────────
+
+Free — command palette, bank reconciliation shortcuts, safer Approve default, dark mode, wrong-organisation warning, two organisation colours
+Solo Pro $14.99/month — unlimited organisation colours, custom shortcuts, multi-organisation workspace, list tools
+Practice Pro $44.99/month — everything above plus the approval guardrails, approval queue watch, and Find & Recode review tools
+
+──────────────────────
+The Xero threads
+──────────────────────
+
+Dark mode (533)
+https://productideas.xero.com/forums/967121-users-setup/suggestions/44961454-organisation-settings-dark-mode
+
+Approve button default (444)
+https://productideas.xero.com/forums/967115-invoices-quotes/suggestions/45438514-invoicing-select-default-for-approve-button-e
+
+Organisation colour (308)
+https://productideas.xero.com/forums/967121-users-setup/suggestions/44988652-organisation-settings-ability-to-set-colour-of-o
+
+Tracking mandatory (287)
+https://productideas.xero.com/forums/967124-projects-tracking/suggestions/44960332-tracking-make-mandatory-required
+
+──────────────────────
+Privacy
+──────────────────────
+
+Xero Power reads the Xero page in front of you to do its job. Nothing about your accounting data leaves your browser. No analytics, no tracking, no ads.
+https://dartmass.github.io/xero-power/privacy-policy.html
 
 ──────────────────────
 Chapters
 ──────────────────────
-0:00 The problem
-0:08 Why Xero hasn't fixed it
-0:18 The fix — Approve button
-0:45 Hidden feature — Ctrl+K command palette
-1:05 Bank reconciliation shortcuts
-1:15 Get it free
+0:00 Four things Xero said it won't build
+0:04 Ctrl+K — jump to any screen
+0:16 The Approve button that emails your client
+0:29 Dark mode
+0:35 Bank reconciliation without the mouse
+0:55 A colour for every client
+1:00 Open every client at once
+1:10 Stop miscoded lines before they are approved
+1:30 Plans
 ```
 
-**Tags**
+---
+
+## タグ
+
 ```
-xero approve button, xero default email, xero approve and email, xero chrome extension, xero keyboard shortcuts, xero command palette, xero bank reconciliation shortcut, xero power, xero productivity, xero tips, xero accounting software, xero bookkeeping
+xero, xero dark mode, xero approve button, xero keyboard shortcuts, xero command palette, xero bank reconciliation, xero tracking categories, xero chrome extension, making tax digital, mtd for income tax, bookkeeping, xero tips, xero for accountants, xero power
 ```
 
 ---
 
-## Script
+## 公開設定
 
-> **Recording notes:**
-> - Total target: 75–90 seconds
-> - Screen capture: record Xero in a real account (Demo Company is fine)
-> - Audience: US bookkeepers/accountants, mostly ChromeOS — say "Ctrl+K" first, mention ⌘K after
-> - Tone: matter-of-fact, not salesy. Show, don't hype.
+**最初は限定公開（Unlisted）にする。**
 
----
+- welcome.html にもストア掲載にも埋め込める
+- 検索に出ないので、内容を直したくなったとき差し替えやすい
+- 固まってから公開に切り替える
 
-### 0:00 – 0:08 | The hook
+## 差し込み先
 
-> "If you use Xero, every time you approve a bill or invoice, the default button is 'Approve & email' — and one wrong click sends an email straight to your client."
+`welcome.html` の `VIDEO_ID`（553行目付近）。URLの `watch?v=` の後ろの文字列。
 
-*[Screen: Xero invoice with the red "Approve & email" button visible]*
-
----
-
-### 0:08 – 0:18 | Why it exists / credibility
-
-> "440 users voted to change this on Xero's own feedback forum. Xero said there are no plans to fix it and locked the thread. So I built a free Chrome extension that does it."
-
-*[Screen: Xero Product Ideas thread — optional, or stay on Xero invoice screen]*
-
----
-
-### 0:18 – 0:45 | The fix — before & after
-
-> "Once you install Xero Power, the button changes to just 'Approve'."
-
-*[Screen: click Approve — invoice approves silently, no email dialog]*
-
-> "Email is still here — one click away in the dropdown menu — for when you actually need it. Nothing is removed. The default is just safer."
-
-*[Screen: click the ▾ caret, show 'Approve & email' is still there in the dropdown]*
-
-> "This works on both invoices and bills. No account needed, no subscription."
-
----
-
-### 0:45 – 1:05 | Hidden feature — Ctrl+K command palette
-
-> "There's more. Press Ctrl+K — or Command+K on Mac — from anywhere in Xero."
-
-*[Screen: press Ctrl+K, palette opens]*
-
-> "You get a command palette. Type the first couple of letters and jump to any screen — Bank Reconciliation, Profit and Loss, Chart of Accounts — without ever touching the menu."
-
-*[Screen: type "ban", Bank Reconciliation highlighted, press Enter, navigate there]*
-
-> "The more you use it, the smarter it gets — your most-used screens show up at the top automatically."
-
----
-
-### 1:05 – 1:15 | Bank reconciliation shortcuts
-
-> "And on the Bank Reconciliation screen, you can process your entire statement list from the keyboard. Arrow keys to move, M to match, C to create, Enter to confirm. No mouse required."
-
-*[Screen: Bank Rec page, green shortcut bar visible, press M on a line, Enter to confirm, move to next]*
-
----
-
-### 1:15 – 1:25 | Close
-
-> "It's free on the Chrome Web Store — link in the description. No account, no subscription, nothing."
-
-*[Screen: Chrome Web Store listing]*
-
-> "If it saves you time, a quick review helps other Xero users find it."
-
-*[End card / store link]*
+```js
+const VIDEO_ID = 'XXXXXXXXXXX';
+```
